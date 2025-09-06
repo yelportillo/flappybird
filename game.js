@@ -2,7 +2,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// Bird, pipes, and buttons
+// Bird, pipes, buttons, and game state
 let bird = { x: 0, y: 0, width: 0, height: 0, velocity: 0, rotation: 0 };
 let pipes = [];
 let score = 0;
@@ -66,7 +66,7 @@ function resizeCanvas() {
 }
 window.addEventListener("resize", resizeCanvas);
 
-// Input handling
+// Input handling (keyboard, click, touch)
 document.addEventListener("keydown", flap);
 document.addEventListener("click", flap);
 document.addEventListener("touchstart", flap);
@@ -94,7 +94,7 @@ function startGame() {
     resizeCanvas();
 }
 
-// Add a new pipe pair
+// Add new pipe pair
 function addPipe() {
     const topHeight = Math.random() * (canvas.height - pipeGap - 50) + 50;
     pipes.push({ x: canvas.width, y: 0, width: pipeWidth, height: topHeight, passed: false });
@@ -115,29 +115,36 @@ function drawBird() {
     ctx.restore();
 }
 
-// Draw button
+// Draw button with centered text
 function drawButton(x, y, text) {
+    const width = buttonConfig.width;
+    const height = buttonConfig.height;
+    const radius = buttonConfig.radius;
+
+    // Draw rounded rectangle
     ctx.fillStyle = buttonConfig.color;
     ctx.shadowColor = "black";
     ctx.shadowBlur = buttonConfig.shadowBlur;
     ctx.beginPath();
-    ctx.moveTo(x + buttonConfig.radius, y);
-    ctx.lineTo(x + buttonConfig.width - buttonConfig.radius, y);
-    ctx.quadraticCurveTo(x + buttonConfig.width, y, x + buttonConfig.width, y + buttonConfig.radius);
-    ctx.lineTo(x + buttonConfig.width, y + buttonConfig.height - buttonConfig.radius);
-    ctx.quadraticCurveTo(x + buttonConfig.width, y + buttonConfig.height, x + buttonConfig.width - buttonConfig.radius, y + buttonConfig.height);
-    ctx.lineTo(x + buttonConfig.radius, y + buttonConfig.height);
-    ctx.quadraticCurveTo(x, y + buttonConfig.height, x, y + buttonConfig.height - buttonConfig.radius);
-    ctx.lineTo(x, y + buttonConfig.radius);
-    ctx.quadraticCurveTo(x, y, x + buttonConfig.radius, y);
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
     ctx.fill();
     ctx.shadowBlur = 0;
 
+    // Draw centered text
     ctx.fillStyle = buttonConfig.font;
     ctx.font = `${buttonConfig.fontSize}px Comic Sans MS`;
     ctx.textAlign = "center";
-    ctx.fillText(text, x + buttonConfig.width / 2, y + buttonConfig.height / 1.8);
+    ctx.textBaseline = "middle"; // ensures vertical centering
+    ctx.fillText(text, x + width / 2, y + height / 2);
 }
 
 // Draw menu
@@ -146,9 +153,10 @@ function drawMenu() {
     ctx.fillStyle = "#FFD700";
     ctx.font = `${Math.floor(canvas.width / 10)}px Comic Sans MS`;
     ctx.textAlign = "center";
+    ctx.textBaseline = "top";
     ctx.shadowColor = "black";
     ctx.shadowBlur = 15;
-    ctx.fillText("FLAPPY BIRD", canvas.width / 2, canvas.height / 4);
+    ctx.fillText("FLAPPY BIRD", canvas.width / 2, canvas.height / 6);
     ctx.shadowBlur = 0;
     drawButton(playButton.x, playButton.y, "PLAY");
 }
@@ -159,13 +167,14 @@ function drawGameOver() {
     ctx.fillStyle = "#FF4500";
     ctx.font = `${Math.floor(canvas.width / 15)}px Comic Sans MS`;
     ctx.textAlign = "center";
+    ctx.textBaseline = "top";
     ctx.shadowColor = "black";
     ctx.shadowBlur = 10;
-    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 3);
+    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 6);
     ctx.shadowBlur = 0;
     ctx.fillStyle = "white";
     ctx.font = `${Math.floor(canvas.width / 25)}px Comic Sans MS`;
-    ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2);
+    ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 3);
     drawButton(restartButton.x, restartButton.y, "RESTART");
 }
 
@@ -211,15 +220,16 @@ function gameLoop() {
     // Remove off-screen pipes
     for (let i = pipes.length - 1; i >= 0; i--) if (pipes[i].x + pipes[i].width < 0) pipes.splice(i, 1);
 
-    // Check out-of-bounds
+    // Out-of-bounds
     const bottomBuffer = 5;
     if (bird.y < 0 || bird.y + bird.height > canvas.height - bottomBuffer) resetGame();
 
-    // Draw score
+    // Score
     ctx.fillStyle = "white";
     ctx.font = `${Math.floor(canvas.width / 20)}px Comic Sans MS`;
     ctx.textAlign = "left";
-    ctx.fillText(`Score: ${score}`, 20, 50);
+    ctx.textBaseline = "top";
+    ctx.fillText(`Score: ${score}`, 20, 20);
 }
 
 // Update loop

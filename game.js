@@ -14,44 +14,21 @@ pipeImg.src = "assets/pipe.png";
 const backgroundImg = new Image();
 backgroundImg.src = "assets/background.png";
 
-// Load sounds
-const wingSound = new Audio("assets/wing.wav");
-const hitSound = new Audio("assets/hit.wav");
-const pointSound = new Audio("assets/point.wav");
-[wingSound, hitSound, pointSound].forEach(s => s.load());
-
-// Unlock audio on first user interaction
-let audioUnlocked = false;
-function unlockAudio() {
-    if (!audioUnlocked) {
-        [wingSound, hitSound, pointSound].forEach(s => {
-            s.currentTime = 0;
-            s.play().catch(() => {});
-            s.pause();
-        });
-        audioUnlocked = true;
-        document.removeEventListener("click", unlockAudio);
-        document.removeEventListener("keydown", unlockAudio);
-    }
-}
-document.addEventListener("click", unlockAudio);
-document.addEventListener("keydown", unlockAudio);
-
 // Bird
 let bird = { x: canvas.width/5, y: canvas.height/2-20, width:50, height:40, velocity:0, rotation:0 };
-const gravity = 0.35;      // slightly lighter gravity
-const jump = -7;           // smaller jump for less sensitivity
+const gravity = 0.38;
+const jump = -8;
 
 // Game variables
 let score = 0;
 const pipes = [];
-const pipeGap = canvas.height * 0.35;  // bigger gap for easier gameplay
+const pipeGap = canvas.height * 0.32;
 const pipeWidth = 80;
 let frameCount = 0;
 
 // Flap cooldown
 let lastFlapTime = 0;
-const flapCooldown = 250;  // slightly faster flap allowed
+const flapCooldown = 300;
 
 // Game states
 let gameState = "menu";
@@ -81,7 +58,6 @@ function handleInput(e) {
         if(now - lastFlapTime > flapCooldown){
             bird.velocity = jump;
             bird.rotation = -0.5;
-            if(audioUnlocked){ wingSound.currentTime=0; wingSound.play(); }
             lastFlapTime = now;
         }
     } else if(gameState==="gameOver") {
@@ -113,7 +89,6 @@ function addPipe(){
 
 function resetGame(){
     gameState="gameOver";
-    if(audioUnlocked){ hitSound.currentTime=0; hitSound.play(); }
 }
 
 function drawBird(){
@@ -185,9 +160,9 @@ function gameLoop(){
     if(bird.rotation>1) bird.rotation=1;
     drawBird();
 
-    if(frameCount%140===0) addPipe();  // slower pipe spawn for easier gameplay
+    if(frameCount%130===0) addPipe();  // normal spawn
 
-    pipes.forEach(pipe=>pipe.x-=2);     // slower pipe speed
+    pipes.forEach(pipe=>pipe.x-=2.3);    // normal speed
     pipes.forEach(pipe=>{
         if(pipe.y===0){
             ctx.save();
@@ -205,7 +180,6 @@ function gameLoop(){
         if(!pipe.passed && pipe.y!==0 && pipe.x+pipe.width<bird.x){
             pipe.passed=true;
             score++;
-            if(audioUnlocked){ pointSound.currentTime=0; pointSound.play(); }
         }
     });
 

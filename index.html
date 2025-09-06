@@ -6,10 +6,14 @@
 <title>Flappy Bird</title>
 <style>
 html, body {
-    margin:0; padding:0; overflow:hidden; height:100%; background:#70c5ce;
+    margin:0; padding:0; overflow:hidden; height:100%;
+    background:#70c5ce;
 }
 canvas {
-    display:block; width:100vw; height:100vh;
+    display:block;
+    width:100vw;
+    height:100vh;
+    touch-action: none; /* Prevents scrolling on mobile */
 }
 </style>
 </head>

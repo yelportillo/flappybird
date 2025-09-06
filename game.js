@@ -32,12 +32,10 @@ backgroundImg.src = "assets/background.png";
 
 // Preload images
 let imagesLoaded = 0;
-const totalImages = 3;
-
 [birdImg, pipeImg, backgroundImg].forEach(img => {
     img.onload = () => {
         imagesLoaded++;
-        if (imagesLoaded === totalImages) startGameLoop();
+        if (imagesLoaded === 3) startGameLoop();
     };
 });
 
@@ -65,13 +63,14 @@ function resizeCanvas() {
     bird.y = canvas.height / 2 - bird.height / 2;
 }
 window.addEventListener("resize", resizeCanvas);
+window.addEventListener("orientationchange", () => setTimeout(resizeCanvas, 200)); // mobile fix
 
-// Input handling (keyboard, click, touch)
+// Input handling
 document.addEventListener("keydown", flap);
 document.addEventListener("click", flap);
 document.addEventListener("touchstart", flap);
 
-function flap(e) {
+function flap() {
     if (gameState === "menu") startGame();
     else if (gameState === "playing") {
         const now = Date.now();
@@ -102,9 +101,7 @@ function addPipe() {
 }
 
 // Reset game
-function resetGame() {
-    gameState = "gameOver";
-}
+function resetGame() { gameState = "gameOver"; }
 
 // Draw bird
 function drawBird() {
@@ -121,7 +118,6 @@ function drawButton(x, y, text) {
     const height = buttonConfig.height;
     const radius = buttonConfig.radius;
 
-    // Draw rounded rectangle
     ctx.fillStyle = buttonConfig.color;
     ctx.shadowColor = "black";
     ctx.shadowBlur = buttonConfig.shadowBlur;
@@ -139,11 +135,10 @@ function drawButton(x, y, text) {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Draw centered text
     ctx.fillStyle = buttonConfig.font;
     ctx.font = `${buttonConfig.fontSize}px Comic Sans MS`;
     ctx.textAlign = "center";
-    ctx.textBaseline = "middle"; // ensures vertical centering
+    ctx.textBaseline = "middle"; // perfectly centered
     ctx.fillText(text, x + width / 2, y + height / 2);
 }
 
@@ -161,7 +156,7 @@ function drawMenu() {
     drawButton(playButton.x, playButton.y, "PLAY");
 }
 
-// Draw game over screen
+// Draw game over
 function drawGameOver() {
     ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#FF4500";
@@ -183,17 +178,14 @@ function gameLoop() {
     frameCount++;
     ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
 
-    // Bird physics
     bird.velocity += gravity;
     bird.y += bird.velocity;
     bird.rotation += 0.03;
     if (bird.rotation > 1) bird.rotation = 1;
     drawBird();
 
-    // Add pipes
     if (frameCount % 130 === 0) addPipe();
 
-    // Move and draw pipes
     pipes.forEach(pipe => pipe.x -= 2.3);
     pipes.forEach(pipe => {
         if (pipe.y === 0) {
@@ -207,24 +199,17 @@ function gameLoop() {
         }
     });
 
-    // Collision detection and scoring
     pipes.forEach(pipe => {
         if (bird.x < pipe.x + pipe.width && bird.x + bird.width > pipe.x &&
             bird.y < pipe.y + pipe.height && bird.y + bird.height > pipe.y) resetGame();
-        if (!pipe.passed && pipe.y !== 0 && pipe.x + pipe.width < bird.x) {
-            pipe.passed = true;
-            score++;
-        }
+        if (!pipe.passed && pipe.y !== 0 && pipe.x + pipe.width < bird.x) { pipe.passed = true; score++; }
     });
 
-    // Remove off-screen pipes
     for (let i = pipes.length - 1; i >= 0; i--) if (pipes[i].x + pipes[i].width < 0) pipes.splice(i, 1);
 
-    // Out-of-bounds
     const bottomBuffer = 5;
     if (bird.y < 0 || bird.y + bird.height > canvas.height - bottomBuffer) resetGame();
 
-    // Score
     ctx.fillStyle = "white";
     ctx.font = `${Math.floor(canvas.width / 20)}px Comic Sans MS`;
     ctx.textAlign = "left";
@@ -241,7 +226,7 @@ function update() {
     requestAnimationFrame(update);
 }
 
-// Start after images loaded
+// Start game after images loaded
 function startGameLoop() {
     resizeCanvas();
     update();

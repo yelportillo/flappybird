@@ -1,8 +1,23 @@
 // Canvas setup
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+
+// Function to resize canvas and scale elements
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Recalculate button positions
+    playButton.x = canvas.width/2 - 120;
+    playButton.y = canvas.height/2 - 50;
+    restartButton.x = canvas.width/2 - 120;
+    restartButton.y = canvas.height/1.5 - 40;
+
+    // Adjust font sizes
+    buttonConfig.fontSize = Math.floor(canvas.width/25);
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas(); // initial call
 
 // Load images
 const birdImg = new Image();
@@ -22,7 +37,7 @@ const jump = -8;
 // Game variables
 let score = 0;
 const pipes = [];
-const pipeGap = canvas.height * 0.32;
+let pipeGap = canvas.height * 0.32;
 const pipeWidth = 80;
 let frameCount = 0;
 
@@ -79,6 +94,7 @@ function startGame(){
     pipes.length=0;
     score=0;
     frameCount=0;
+    pipeGap = canvas.height * 0.32; // recalc gap in case of resize
 }
 
 function addPipe(){
@@ -92,27 +108,35 @@ function resetGame(){
 }
 
 function drawBird(){
+    // Scale bird relative to canvas height
+    const birdWidth = canvas.height * 0.06;
+    const birdHeight = canvas.height * 0.05;
+
     ctx.save();
-    ctx.translate(bird.x+bird.width/2, bird.y+bird.height/2);
+    ctx.translate(bird.x+birdWidth/2, bird.y+birdHeight/2);
     ctx.rotate(bird.rotation);
-    ctx.drawImage(birdImg,-bird.width/2,-bird.height/2,bird.width,bird.height);
+    ctx.drawImage(birdImg,-birdWidth/2,-birdHeight/2,birdWidth,birdHeight);
     ctx.restore();
 }
 
 function drawButton(x,y,text){
+    const width = buttonConfig.width;
+    const height = buttonConfig.height;
+    const radius = buttonConfig.radius;
+
     ctx.fillStyle=buttonConfig.color;
     ctx.shadowColor="black";
     ctx.shadowBlur=buttonConfig.shadowBlur;
     ctx.beginPath();
-    ctx.moveTo(x+buttonConfig.radius,y);
-    ctx.lineTo(x+buttonConfig.width-buttonConfig.radius,y);
-    ctx.quadraticCurveTo(x+buttonConfig.width,y,x+buttonConfig.width,y+buttonConfig.radius);
-    ctx.lineTo(x+buttonConfig.width,y+buttonConfig.height-buttonConfig.radius);
-    ctx.quadraticCurveTo(x+buttonConfig.width,y+buttonConfig.height,x+buttonConfig.width-buttonConfig.radius,y+buttonConfig.height);
-    ctx.lineTo(x+buttonConfig.radius,y+buttonConfig.height);
-    ctx.quadraticCurveTo(x,y+buttonConfig.height,x,y+buttonConfig.height-buttonConfig.radius);
-    ctx.lineTo(x,y+buttonConfig.radius);
-    ctx.quadraticCurveTo(x,y,x+buttonConfig.radius,y);
+    ctx.moveTo(x+radius,y);
+    ctx.lineTo(x+width-radius,y);
+    ctx.quadraticCurveTo(x+width,y,x+width,y+radius);
+    ctx.lineTo(x+width,y+height-radius);
+    ctx.quadraticCurveTo(x+width,y+height,x+width-radius,y+height);
+    ctx.lineTo(x+radius,y+height);
+    ctx.quadraticCurveTo(x,y+height,x,y+height-radius);
+    ctx.lineTo(x,y+radius);
+    ctx.quadraticCurveTo(x,y,x+radius,y);
     ctx.closePath();
     ctx.fill();
     ctx.shadowBlur=0;
@@ -120,7 +144,7 @@ function drawButton(x,y,text){
     ctx.fillStyle=buttonConfig.font;
     ctx.font=`${buttonConfig.fontSize}px Comic Sans MS`;
     ctx.textAlign="center";
-    ctx.fillText(text,x+buttonConfig.width/2,y+buttonConfig.height/1.8);
+    ctx.fillText(text,x+width/2,y+height/1.8);
 }
 
 function drawMenu(){
@@ -160,18 +184,19 @@ function gameLoop(){
     if(bird.rotation>1) bird.rotation=1;
     drawBird();
 
-    if(frameCount%130===0) addPipe();  // normal spawn
+    if(frameCount%130===0) addPipe();
 
-    pipes.forEach(pipe=>pipe.x-=2.3);    // normal speed
+    pipes.forEach(pipe=>pipe.x-=2.3);
     pipes.forEach(pipe=>{
+        const pipeHeight = pipe.height;
         if(pipe.y===0){
             ctx.save();
-            ctx.translate(pipe.x+pipe.width/2,pipe.height/2);
+            ctx.translate(pipe.x+pipe.width/2,pipeHeight/2);
             ctx.scale(1,-1);
-            ctx.drawImage(pipeImg,-pipe.width/2,-pipe.height/2,pipe.width,pipe.height);
+            ctx.drawImage(pipeImg,-pipe.width/2,-pipeHeight/2,pipe.width,pipeHeight);
             ctx.restore();
         }else{
-            ctx.drawImage(pipeImg,pipe.x,pipe.y,pipe.width,pipe.height);
+            ctx.drawImage(pipeImg,pipe.x,pipe.y,pipe.width,pipeHeight);
         }
     });
 

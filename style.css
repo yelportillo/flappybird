@@ -1,0 +1,10 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #70c5ce;
+    font-family: 'Comic Sans MS', cursive, sans-serif; /* playful font */
+}
+
+canvas {
+    display: block;
+}

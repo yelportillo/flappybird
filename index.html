@@ -33,10 +33,10 @@ let pointSound = new Audio('assets/sounds/point.wav');
 const GRAVITY = 0.5;
 const FLAP_STRENGTH = -10;
 const PIPE_SPEED = 3;
-let PIPE_WIDTH = Math.floor(SCREEN_WIDTH * 0.08);
+let PIPE_WIDTH = Math.floor(SCREEN_WIDTH * 0.12); // thicker pipes
 let PIPE_GAP = Math.floor(SCREEN_HEIGHT * 0.28 + SCREEN_WIDTH * 0.05);
 let COLLISION_PADDING = 5;
-let spawnInterval = Math.max(Math.floor(SCREEN_WIDTH * 0.9), 400); // wider spacing
+let spawnInterval = Math.max(Math.floor(SCREEN_WIDTH * 1.1), 500); // further apart
 
 class Bird {
     constructor() {
@@ -76,7 +76,7 @@ class Pipe {
         this.x = x;
         this.width = PIPE_WIDTH;
 
-        // Ensure top pipe is not too short or too tall
+        // Ensure top pipe height is within playable range
         const minTop = 50;
         const maxTop = SCREEN_HEIGHT - PIPE_GAP - 50;
         this.topHeight = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop;
@@ -125,19 +125,26 @@ function rectsCollide(r1, r2) {
            r1.y + r1.height > r2.y;
 }
 
+// Update proportions dynamically for full responsiveness
 function updateProportions() {
     SCREEN_WIDTH = window.innerWidth;
     SCREEN_HEIGHT = window.innerHeight;
     canvas.width = SCREEN_WIDTH;
     canvas.height = SCREEN_HEIGHT;
 
+    // Bird scaling
     bird.height = Math.floor(SCREEN_HEIGHT * 0.05);
     bird.width = Math.floor(bird.height * (birdImg.width / birdImg.height));
     if (bird.y + bird.height > SCREEN_HEIGHT) bird.y = SCREEN_HEIGHT - bird.height;
 
-    PIPE_WIDTH = Math.floor(SCREEN_WIDTH * 0.08);
+    // Thicker pipes
+    PIPE_WIDTH = Math.floor(SCREEN_WIDTH * 0.12);
+
+    // Vertical gap
     PIPE_GAP = Math.floor(SCREEN_HEIGHT * 0.28 + SCREEN_WIDTH * 0.05);
-    spawnInterval = Math.max(Math.floor(SCREEN_WIDTH * 0.9), 400);
+
+    // Further apart horizontally
+    spawnInterval = Math.max(Math.floor(SCREEN_WIDTH * 1.1), 500);
 
     pipes.forEach(pipe => pipe.width = PIPE_WIDTH);
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Flappy Bird - Time-Based Physics</title>
+<title>Flappy Bird - Cross-Device with Game Over</title>
 <style>
   body { margin:0; overflow:hidden; background:#000; }
   canvas { display:block; background:url('assets/background.png') no-repeat center/cover; }
@@ -119,6 +119,15 @@ function resetGame(){ bird=new Bird(); pipes=[]; spawnTimer=0; score=0; }
 function drawText(text,x,y,size){ ctx.fillStyle="white"; ctx.font=`${size}px Comic Sans MS`; ctx.textAlign="center"; ctx.fillText(text,x,y); }
 function rectsCollide(r1,r2){ return r1.x<r2.x+r2.width && r1.x+r1.width>r2.x && r1.y<r2.y+r2.height && r1.y+r1.height>r2.y; }
 
+// Draw Game Over screen
+function drawGameOver(){
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
+    drawText("GAME OVER", SCREEN_WIDTH/2, SCREEN_HEIGHT/3, 60);
+    drawText(`Final Score: ${score}`, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 40);
+    drawText("Tap/Click or SPACE to Restart", SCREEN_WIDTH/2, SCREEN_HEIGHT*2/3, 30);
+}
+
 let lastTime = performance.now();
 
 // Game loop using deltaTime
@@ -156,20 +165,27 @@ function gameLoop(currentTime){
         drawText(score, 50, 50, 40);
 
     } else if(gameState==="gameover"){
-        drawText("GAME OVER", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, 60);
-        drawText(`Score: ${score}`, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 40);
-        resetGame(); gameState="menu";
+        drawGameOver();
     }
 
     requestAnimationFrame(gameLoop);
 }
 
 // Input
-document.addEventListener('keydown', e=>{ if(e.code==="Space"){ if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap(); }});
-canvas.addEventListener('mousedown', ()=>{ if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap(); });
+document.addEventListener('keydown', e=>{
+    if(e.code==="Space"){
+        if(gameState==="menu" || gameState==="gameover") resetGame(), gameState="playing";
+        else if(gameState==="playing") bird.flap();
+    }
+});
+canvas.addEventListener('mousedown', ()=>{
+    if(gameState==="menu" || gameState==="gameover") resetGame(), gameState="playing";
+    else if(gameState==="playing") bird.flap();
+});
 canvas.addEventListener('touchstart', e=>{
     e.preventDefault();
-    if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap();
+    if(gameState==="menu" || gameState==="gameover") resetGame(), gameState="playing";
+    else if(gameState==="playing") bird.flap();
 },{passive:false});
 
 // Resize

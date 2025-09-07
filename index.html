@@ -43,7 +43,14 @@ let COLLISION_PADDING = 5;
 // Pipes
 let PIPE_WIDTH, PIPE_GAP, spawnInterval;
 
-// Scaling
+// Device scaling
+let deviceScale = 1;
+
+function updateDeviceScale() {
+    deviceScale = (SCREEN_WIDTH <= 768) ? 0.6 : 1; // slower physics on mobile
+}
+
+// Scaling and proportions
 function updateProportions() {
     SCREEN_WIDTH = window.innerWidth;
     SCREEN_HEIGHT = window.innerHeight;
@@ -57,8 +64,8 @@ function updateProportions() {
 
     if(SCREEN_WIDTH <= 768){
         PIPE_WIDTH = Math.max(60*scale, 50);
-        PIPE_GAP = Math.max(220*scale, 150);
-        spawnInterval = Math.max(250*scale, 150);
+        PIPE_GAP = Math.max(250*scale, 180);      // wider gap
+        spawnInterval = Math.max(300*scale, 200); // more space between pipes
     } else {
         PIPE_WIDTH = Math.max(80*scale, 50);
         PIPE_GAP = Math.max(200*scale, 150);
@@ -79,8 +86,8 @@ class Bird {
     }
     flap(){ this.velocity = FLAP_STRENGTH; wingSound.play(); }
     update(deltaTime){
-        this.velocity += GRAVITY * deltaTime * 60;
-        this.y += this.velocity * deltaTime * 60;
+        this.velocity += GRAVITY * deltaTime * 60 * deviceScale;
+        this.y += this.velocity * deltaTime * 60 * deviceScale;
     }
     draw(){ ctx.drawImage(birdImg, this.x, this.y, this.width, this.height); }
     hitbox(){ return {x:this.x+COLLISION_PADDING, y:this.y+COLLISION_PADDING, width:this.width-2*COLLISION_PADDING, height:this.height-2*COLLISION_PADDING}; }
@@ -97,7 +104,7 @@ class Pipe {
         this.bottomY = this.topHeight + PIPE_GAP;
         this.passed = false;
     }
-    update(deltaTime){ this.x -= PIPE_SPEED * deltaTime * 60; }
+    update(deltaTime){ this.x -= PIPE_SPEED * deltaTime * 60 * deviceScale; }
     draw(){
         // Top pipe
         ctx.save();
@@ -136,16 +143,17 @@ function gameLoop(currentTime){
     lastTime = currentTime;
 
     updateProportions();
+    updateDeviceScale();
     ctx.clearRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
 
     if(gameState==="menu"){
-        drawText("Flappy Bird", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, 60); // Title stays exactly "Flappy Bird"
+        drawText("Flappy Bird", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, 60);
         drawText("Tap/Click or SPACE to play", SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 30);
     } else if(gameState==="playing"){
         bird.update(deltaTime);
         bird.draw();
 
-        spawnTimer += PIPE_SPEED * deltaTime * 60;
+        spawnTimer += PIPE_SPEED * deltaTime * 60 * deviceScale;
         if(spawnTimer >= spawnInterval){ pipes.push(new Pipe(SCREEN_WIDTH)); spawnTimer=0; }
 
         pipes.forEach(pipe=>{
@@ -189,9 +197,13 @@ canvas.addEventListener('touchstart', e=>{
 },{passive:false});
 
 // Resize
-window.addEventListener('resize', ()=>updateProportions());
+window.addEventListener('resize', ()=>{
+    updateProportions();
+    updateDeviceScale();
+});
 
 // Start
+updateDeviceScale();
 resetGame();
 requestAnimationFrame(gameLoop);
 </script>

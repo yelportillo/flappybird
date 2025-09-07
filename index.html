@@ -46,11 +46,11 @@ let pipes = [];
 let score = 0;
 let spawnTimer = 0;
 
-const GRAVITY = 0.5;
-const FLAP = -10;
+const GRAVITY = 800; // pixels per second squared
+const FLAP = -300;   // pixels per second
 const PIPE_WIDTH_RATIO = 0.17; // relative to canvas width
 const PIPE_GAP_RATIO = 0.32;   // relative to canvas height
-const PIPE_SPEED = 3 / 500;    // relative speed
+const PIPE_SPEED_RATIO = 0.3;  // % of canvas width per second
 
 // Load images
 const birdImg = new Image();
@@ -58,11 +58,11 @@ birdImg.src = 'assets/bird.png';
 const pipeImg = new Image();
 pipeImg.src = 'assets/pipe.png';
 
+// Resize canvas and bird proportionally
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Reset bird size proportionally
     bird.width = canvas.width * 0.08;
     bird.height = bird.width * (birdImg.height / birdImg.width);
     bird.x = canvas.width * 0.2;
@@ -133,8 +133,8 @@ function spawnPipe() {
 }
 
 function updateBird(dt) {
-    bird.velocity += GRAVITY * dt * 60;
-    bird.y += bird.velocity * dt * 60;
+    bird.velocity += GRAVITY * dt;
+    bird.y += bird.velocity * dt;
     if(bird.y + bird.height >= canvas.height || bird.y <= 0) gameOver();
 }
 
@@ -145,8 +145,9 @@ function updatePipes(dt) {
         spawnTimer = 0;
     }
 
+    const pipeSpeed = PIPE_SPEED_RATIO * canvas.width; // pixels per second
     pipes.forEach(pipe => {
-        pipe.x -= PIPE_SPEED * dt * 60 * canvas.width;
+        pipe.x -= pipeSpeed * dt;
 
         // collision
         if(bird.x < pipe.x + pipe.width && bird.x + bird.width > pipe.x) {
@@ -166,10 +167,10 @@ function drawPipes() {
     pipes.forEach(drawPipe);
 }
 
-// Game loop with deltaTime
+// Game loop with deltaTime in seconds
 let lastTime = performance.now();
 function gameLoop(timestamp) {
-    const dt = (timestamp - lastTime) / 16.666;
+    const dt = (timestamp - lastTime) / 1000; // dt in seconds
     lastTime = timestamp;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);

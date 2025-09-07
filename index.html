@@ -49,7 +49,7 @@ let spawnTimer = 0;
 const GRAVITY = 0.5;
 const FLAP = -10;
 const PIPE_WIDTH = 120;
-const PIPE_GAP = 200;
+const PIPE_GAP = 220; // increased vertical gap
 const PIPE_SPEED = 3;
 
 // Load images
@@ -130,7 +130,7 @@ function spawnPipe() {
 
 function updatePipes() {
     spawnTimer++;
-    if(spawnTimer > 90) {
+    if(spawnTimer > 180) { // increased horizontal spacing
         spawnPipe();
         spawnTimer = 0;
     }

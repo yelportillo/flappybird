@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flappy Bird - Fixed Desktop Speed</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Flappy Bird - Cross-Device</title>
 <style>
   body { margin:0; overflow:hidden; background:#000; }
   canvas { display:block; background:url('assets/background.png') no-repeat center/cover; }
@@ -44,7 +44,7 @@ let COLLISION_PADDING = 5;
 // Pipes
 let PIPE_WIDTH, PIPE_GAP, spawnInterval;
 
-// Update proportions
+// Update scaling and proportions
 function updateProportions() {
     SCREEN_WIDTH = window.innerWidth;
     SCREEN_HEIGHT = window.innerHeight;

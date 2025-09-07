@@ -7,12 +7,11 @@
   html, body {
     margin: 0;
     padding: 0;
-    background: black;
     overflow: hidden;
+    background: black;
   }
   canvas {
     display: block;
-    margin: 0 auto;
     background: url('assets/background.png') no-repeat center center;
     background-size: cover;
   }
@@ -28,11 +27,12 @@
     border: none;
     border-radius: 8px;
     cursor: pointer;
+    z-index: 10;
   }
 </style>
 </head>
 <body>
-<canvas id="gameCanvas" width="500" height="700"></canvas>
+<canvas id="gameCanvas"></canvas>
 <button id="playButton">PLAY</button>
 
 <script>
@@ -41,16 +41,16 @@ const ctx = canvas.getContext('2d');
 const playButton = document.getElementById('playButton');
 
 let gameState = "menu";
-let bird = {x: 100, y: 350, width: 40, height: 30, velocity: 0};
+let bird = {x: 0, y: 0, width: 0, height: 0, velocity: 0};
 let pipes = [];
 let score = 0;
 let spawnTimer = 0;
 
 const GRAVITY = 0.5;
 const FLAP = -10;
-const PIPE_WIDTH = 120;
-const PIPE_GAP = 220; // vertical gap
-const PIPE_SPEED = 3;
+const PIPE_WIDTH_RATIO = 0.17; // relative to canvas width
+const PIPE_GAP_RATIO = 0.32;   // relative to canvas height
+const PIPE_SPEED = 3 / 500;    // relative speed
 
 // Load images
 const birdImg = new Image();
@@ -58,28 +58,35 @@ birdImg.src = 'assets/bird.png';
 const pipeImg = new Image();
 pipeImg.src = 'assets/pipe.png';
 
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Reset bird size proportionally
+    bird.width = canvas.width * 0.08;
+    bird.height = bird.width * (birdImg.height / birdImg.width);
+    bird.x = canvas.width * 0.2;
+    bird.y = canvas.height / 2 - bird.height / 2;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
 // Event listeners
-playButton.addEventListener('click', () => {
-    startGame();
-});
+playButton.addEventListener('click', () => startGame());
 document.addEventListener('keydown', (e) => {
-    if(gameState === "playing" && e.code === "Space") {
-        bird.velocity = FLAP;
-    }
+    if(gameState === "playing" && e.code === "Space") bird.velocity = FLAP;
 });
-document.addEventListener('mousedown', (e) => {
-    if(gameState === "playing") {
-        bird.velocity = FLAP;
-    }
+document.addEventListener('mousedown', () => {
+    if(gameState === "playing") bird.velocity = FLAP;
 });
 
 // Functions
 function startGame() {
     gameState = "playing";
-    bird = {x: 100, y: 350, width: 40, height: 30, velocity: 0};
     pipes = [];
     score = 0;
     spawnTimer = 0;
+    bird.velocity = 0;
     playButton.style.display = "none";
     lastTime = performance.now();
     requestAnimationFrame(gameLoop);
@@ -108,45 +115,42 @@ function drawPipe(pipe) {
 
 function drawScore() {
     ctx.fillStyle = "white";
-    ctx.font = "40px sans-serif";
-    ctx.fillText(score, 20, 50);
+    ctx.font = `${canvas.width * 0.08}px sans-serif`;
+    ctx.fillText(score, canvas.width * 0.03, canvas.height * 0.08);
 }
 
 function spawnPipe() {
-    const topHeight = Math.floor(Math.random() * (canvas.height - PIPE_GAP - 100) + 50);
+    const gap = canvas.height * PIPE_GAP_RATIO;
+    const topHeight = Math.random() * (canvas.height - gap - 100) + 50;
     const pipe = {
         x: canvas.width,
-        width: PIPE_WIDTH,
+        width: canvas.width * PIPE_WIDTH_RATIO,
         topHeight: topHeight,
-        bottomY: topHeight + PIPE_GAP,
+        bottomY: topHeight + gap,
         passed: false
     };
     pipes.push(pipe);
 }
 
 function updateBird(dt) {
-    bird.velocity += GRAVITY * dt;
-    bird.y += bird.velocity * dt;
-    if(bird.y + bird.height >= canvas.height || bird.y <= 0) {
-        gameOver();
-    }
+    bird.velocity += GRAVITY * dt * 60;
+    bird.y += bird.velocity * dt * 60;
+    if(bird.y + bird.height >= canvas.height || bird.y <= 0) gameOver();
 }
 
 function updatePipes(dt) {
-    spawnTimer += dt * 60; // normalize timer to 60fps
-    if(spawnTimer > 180) { // horizontal spacing
+    spawnTimer += dt * 60;
+    if(spawnTimer > 180) {
         spawnPipe();
         spawnTimer = 0;
     }
 
     pipes.forEach(pipe => {
-        pipe.x -= PIPE_SPEED * dt * 60;
+        pipe.x -= PIPE_SPEED * dt * 60 * canvas.width;
 
-        // Collision
+        // collision
         if(bird.x < pipe.x + pipe.width && bird.x + bird.width > pipe.x) {
-            if(bird.y < pipe.topHeight || bird.y + bird.height > pipe.bottomY) {
-                gameOver();
-            }
+            if(bird.y < pipe.topHeight || bird.y + bird.height > pipe.bottomY) gameOver();
         }
 
         if(!pipe.passed && bird.x > pipe.x + pipe.width) {
@@ -165,10 +169,10 @@ function drawPipes() {
 // Game loop with deltaTime
 let lastTime = performance.now();
 function gameLoop(timestamp) {
-    const dt = (timestamp - lastTime) / 16.666; // ~60fps normalization
+    const dt = (timestamp - lastTime) / 16.666;
     lastTime = timestamp;
 
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if(gameState === "playing") {
         updateBird(dt);

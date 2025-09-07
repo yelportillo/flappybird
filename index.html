@@ -5,16 +5,16 @@
 <title>Flappy Bird</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,maximum-scale=1" />
 <style>
-  html,body { margin:0; padding:0; height:100%; background:#000; overflow:hidden; touch-action:none; }
-  canvas { display:block; background:#000; margin:0 auto; }
-  #playBtn {
-    position: absolute;
-    left: 50%; top: 50%;
-    transform: translate(-50%,-50%);
-    font-size: 28px; padding:12px 20px;
-    background:#0a8b2f; color:#fff; border:none; border-radius:8px;
-    cursor:pointer; z-index:50;
-  }
+html,body { margin:0; padding:0; height:100%; background:#000; overflow:hidden; touch-action:none; }
+canvas { display:block; background:#000; margin:0 auto; }
+#playBtn {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 28px; padding:12px 20px;
+  background:#0a8b2f; color:#fff; border:none; border-radius:8px;
+  cursor:pointer; z-index:50;
+}
 </style>
 </head>
 <body>
@@ -22,12 +22,12 @@
 <button id="playBtn">PLAY</button>
 
 <script>
-/* ---------- Config (Normal Difficulty + Bigger Pipes) ---------- */
+/* ---------- Config ---------- */
 const GRAVITY = 0.35;
 const FLAP = -8;
 const PIPE_SPEED = 2.5;
 const SPAWN_FRAMES = 150;
-const PIPE_GAP = 180;
+const PIPE_GAP_RATIO = 0.25;  // 1/4 of screen height
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -52,12 +52,12 @@ function enableSounds() {
 }
 
 /* ---------- Responsive Sizes ---------- */
-let VIS = { birdW:40, birdH:30, pipeW:120, pipeGap:PIPE_GAP }; // thicker pipes
+let VIS = { birdW:40, birdH:30, pipeW:100, pipeGap:150 };
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  VIS.pipeW = Math.floor(canvas.width / 4.5); // bigger pipes
-  VIS.pipeGap = Math.floor(canvas.height / 4);
+  VIS.pipeW = Math.floor(canvas.width / 5);         // bigger pipes
+  VIS.pipeGap = Math.floor(canvas.height * PIPE_GAP_RATIO); // normal gap
   VIS.birdW = Math.floor(canvas.width / 12);
   VIS.birdH = VIS.birdW * 0.75;
 }
@@ -131,8 +131,11 @@ function update(dt) {
   }
 }
 function draw() {
+  // Background
   if (assets.bg.complete) ctx.drawImage(assets.bg,0,0,canvas.width,canvas.height);
-  else { ctx.fillStyle='#70c5ce'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+  else ctx.fillStyle='#70c5ce',ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Pipes
   for (let p of pipes) {
     ctx.save();
     ctx.translate(p.x+p.w/2,p.topH/2); ctx.scale(1,-1);
@@ -140,18 +143,27 @@ function draw() {
     ctx.restore();
     if (assets.pipe.complete) ctx.drawImage(assets.pipe,p.x,p.bottomY,p.w,canvas.height-p.bottomY);
   }
+
+  // Bird
   if (assets.bird.complete) ctx.drawImage(assets.bird,bird.x,bird.y,bird.w,bird.h);
 
-  // Score inside screen
+  // Score
   ctx.fillStyle='#fff'; 
   ctx.font=`${Math.max(20,Math.floor(canvas.width*0.05))}px sans-serif`;
-  ctx.fillText(score, Math.min(20, canvas.width-50), Math.floor(canvas.height*0.08));
+  ctx.fillText(score, 20, Math.floor(canvas.height*0.08));
 
-  // Game Over Text
+  // Game Over
   if(state==='gameover') {
     ctx.fillStyle='red';
     ctx.font=`${Math.max(40,Math.floor(canvas.width*0.08))}px sans-serif`;
     ctx.fillText('GAME OVER',canvas.width/2-150,canvas.height/2-20);
+  }
+
+  // Main menu title
+  if(state==='menu') {
+    ctx.fillStyle='yellow';
+    ctx.font=`${Math.max(40,Math.floor(canvas.width*0.08))}px sans-serif`;
+    ctx.fillText('Flappy Bird',canvas.width/2-150,canvas.height/3);
   }
 }
 

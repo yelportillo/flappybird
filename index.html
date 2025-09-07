@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flappy Bird - iOS Friendly</title>
+<title>Flappy Bird - Mobile Friendly</title>
 <style>
   body { margin:0; overflow:hidden; background:#000; }
   canvas { display:block; background:url('assets/background.png') no-repeat center/cover; }
@@ -15,7 +15,6 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Screen
 let SCREEN_WIDTH = window.innerWidth;
 let SCREEN_HEIGHT = window.innerHeight;
 canvas.width = SCREEN_WIDTH;
@@ -28,39 +27,40 @@ let wingSound = new Audio('assets/sounds/wing.wav');
 let hitSound = new Audio('assets/sounds/hit.wav');
 let pointSound = new Audio('assets/sounds/point.wav');
 
-// Physics & collision
-let GRAVITY = 0.35;     
-let FLAP_STRENGTH = -8;
-const PIPE_SPEED = 3;
-let COLLISION_PADDING = 5;
-
 // Game state
 let bird, pipes, spawnTimer, score;
 let gameState = "menu";
 
-// Pipes & spacing
+// Base physics
+let GRAVITY = 0.4;
+let FLAP_STRENGTH = -8;
+const PIPE_SPEED = 3;
+let COLLISION_PADDING = 5;
+
+// Pipe sizes & spacing
 let PIPE_WIDTH, PIPE_GAP, spawnInterval;
 
-// Update proportions for device
+// Update proportions based on screen
 function updateProportions() {
     SCREEN_WIDTH = window.innerWidth;
     SCREEN_HEIGHT = window.innerHeight;
     canvas.width = SCREEN_WIDTH;
     canvas.height = SCREEN_HEIGHT;
 
-    // Bird size proportional
-    bird.width = Math.floor(SCREEN_HEIGHT*0.06);
-    bird.height = Math.floor(SCREEN_HEIGHT*0.06);
+    let baseScale = Math.min(SCREEN_WIDTH, SCREEN_HEIGHT) / 600;
 
-    // Pipes size
-    if(SCREEN_WIDTH <= 768){ // Mobile devices
-        PIPE_WIDTH = Math.floor(SCREEN_WIDTH*0.18);
-        PIPE_GAP = Math.floor(SCREEN_HEIGHT*0.28);
-    } else { // Desktop/tablet
-        PIPE_WIDTH = Math.floor(SCREEN_WIDTH*0.12);
-        PIPE_GAP = Math.floor(SCREEN_HEIGHT*0.25);
+    bird.width = 40 * baseScale;
+    bird.height = 40 * baseScale;
+
+    if(SCREEN_WIDTH <= 768){ // mobile
+        PIPE_WIDTH = 60 * baseScale;
+        PIPE_GAP = 220 * baseScale;
+        spawnInterval = 250 * baseScale;
+    } else { // desktop
+        PIPE_WIDTH = 80 * baseScale;
+        PIPE_GAP = 200 * baseScale;
+        spawnInterval = 300 * baseScale;
     }
-    spawnInterval = Math.min(Math.floor(SCREEN_WIDTH*0.35), 300);
 
     pipes.forEach(pipe=>pipe.width=PIPE_WIDTH);
 }
@@ -70,12 +70,15 @@ class Bird {
     constructor() {
         this.x = SCREEN_WIDTH/5;
         this.y = SCREEN_HEIGHT/2;
-        this.width = Math.floor(SCREEN_HEIGHT*0.06);
-        this.height = Math.floor(SCREEN_HEIGHT*0.06);
+        this.width = 40;
+        this.height = 40;
         this.velocity = 0;
     }
     flap() { this.velocity = FLAP_STRENGTH; wingSound.play(); }
-    update(delta) { this.velocity += GRAVITY*delta; this.y += this.velocity*delta; }
+    update() {
+        this.velocity += GRAVITY;
+        this.y += this.velocity;
+    }
     draw() { ctx.drawImage(birdImg,this.x,this.y,this.width,this.height); }
     hitbox() { return {x:this.x+COLLISION_PADDING, y:this.y+COLLISION_PADDING, width:this.width-2*COLLISION_PADDING, height:this.height-2*COLLISION_PADDING}; }
 }
@@ -91,7 +94,7 @@ class Pipe {
         this.bottomY = this.topHeight + PIPE_GAP;
         this.passed = false;
     }
-    update(delta) { this.x -= PIPE_SPEED*delta; }
+    update() { this.x -= PIPE_SPEED; }
     draw() {
         // Top pipe
         ctx.save();
@@ -114,13 +117,7 @@ function drawText(text,x,y,size){ ctx.fillStyle="white"; ctx.font=`${size}px Com
 function rectsCollide(r1,r2){ return r1.x<r2.x+r2.width && r1.x+r1.width>r2.x && r1.y<r2.y+r2.height && r1.y+r1.height>r2.y; }
 
 // Game loop
-let lastTime = 0;
-function gameLoop(timestamp){
-    if(!lastTime) lastTime = timestamp;
-    let delta = (timestamp - lastTime)/16.67;
-    if(delta > 2) delta = 2; // cap delta for iOS throttling
-    lastTime = timestamp;
-
+function gameLoop(){
     updateProportions();
     ctx.clearRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
 
@@ -128,14 +125,14 @@ function gameLoop(timestamp){
         drawText("Flappy Bird", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, 60);
         drawText("Tap/Click or SPACE to play", SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 30);
     } else if(gameState==="playing"){
-        bird.update(delta);
+        bird.update();
         bird.draw();
 
-        spawnTimer += PIPE_SPEED*delta;
+        spawnTimer += PIPE_SPEED;
         if(spawnTimer>=spawnInterval){ pipes.push(new Pipe(SCREEN_WIDTH)); spawnTimer=0; }
 
         pipes.forEach(pipe=>{
-            pipe.update(delta);
+            pipe.update();
             pipe.draw();
 
             if(rectsCollide(bird.hitbox(),pipe.topRect()) || rectsCollide(bird.hitbox(),pipe.bottomRect())){
@@ -163,7 +160,7 @@ function gameLoop(timestamp){
 document.addEventListener('keydown', e=>{ if(e.code==="Space"){ if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap(); }});
 canvas.addEventListener('mousedown', ()=>{ if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap(); });
 canvas.addEventListener('touchstart', e=>{
-    e.preventDefault(); // prevent scrolling on iOS
+    e.preventDefault(); 
     if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap();
 },{passive:false});
 

@@ -1,246 +1,180 @@
-import pygame
-import random
-import sys
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Flappy Bird</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,maximum-scale=1" />
+<style>
+  html,body { margin:0; padding:0; height:100%; background:#000; overflow:hidden; touch-action:none; }
+  canvas { display:block; background:#000; margin:0 auto; }
+  #playBtn {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%,-50%);
+    font-size: 28px; padding:12px 20px;
+    background:#0a8b2f; color:#fff; border:none; border-radius:8px;
+    cursor:pointer; z-index:50;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<button id="playBtn">PLAY</button>
 
-pygame.init()
-pygame.mixer.init()
+<script>
+/* ---------- Config (Normal Difficulty) ---------- */
+const GRAVITY = 0.35;      // lighter gravity
+const FLAP = -8;           // normal flap
+const PIPE_SPEED = 2.5;    // normal pipe speed
+const SPAWN_FRAMES = 150;  // more space between pipes
+const PIPE_GAP = 180;      // gap between top and bottom pipes
 
-# Screen setup
-SCREEN_WIDTH = 500
-SCREEN_HEIGHT = 700
-SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Flappy Bird")
-clock = pygame.time.Clock()
-FPS = 60
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const playBtn = document.getElementById('playBtn');
 
-# Colors & Fonts
-WHITE = (255, 255, 255)
-BUTTON_COLOR = (0, 150, 0)
-TITLE_FONT = pygame.font.SysFont("comicsansms", 60)
-BUTTON_FONT = pygame.font.SysFont("comicsansms", 30)
-SCORE_FONT = pygame.font.SysFont("comicsansms", 40)
+let assets = { bird: new Image(), pipe: new Image(), bg: new Image() };
+assets.bird.src = 'assets/bird.png';
+assets.pipe.src = 'assets/pipe.png';
+assets.bg.src = 'assets/background.png';
 
-# Game variables
-GRAVITY = 0.5
-FLAP_STRENGTH = -10
-PIPE_SPEED = 3
-PIPE_WIDTH = 120
-PIPE_GAP = 200
-COLLISION_PADDING = 5
+// Sounds
+let wingSound = new Audio('assets/sounds/wing.wav');
+let hitSound  = new Audio('assets/sounds/hit.wav');
+let pointSound = new Audio('assets/sounds/point.wav');
+let soundsEnabled = false;
 
-# Leaderboard
-leaderboard = []
+function enableSounds() {
+  if (!soundsEnabled) {
+    wingSound.play().catch(()=>{});
+    wingSound.pause(); wingSound.currentTime = 0;
+    soundsEnabled = true;
+  }
+}
 
-# Load assets
-BIRD_IMG = pygame.image.load("assets/bird.png").convert_alpha()
-PIPE_IMG = pygame.image.load("assets/pipe.png").convert_alpha()
-BACKGROUND_IMG = pygame.image.load("assets/background.png").convert_alpha()
+/* ---------- Responsive Sizes ---------- */
+let VIS = { birdW:40, birdH:30, pipeW:80, pipeGap:PIPE_GAP };
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  VIS.pipeW = Math.floor(canvas.width / 6);
+  VIS.pipeGap = Math.floor(canvas.height / 4); // normal gap
+  VIS.birdW = Math.floor(canvas.width / 12);
+  VIS.birdH = VIS.birdW * 0.75;
+}
+window.addEventListener('resize', resize);
 
-# Scale bird keeping aspect ratio
-BIRD_WIDTH = 40
-BIRD_HEIGHT = int(BIRD_WIDTH * BIRD_IMG.get_height() / BIRD_IMG.get_width())
-BIRD_IMG = pygame.transform.scale(BIRD_IMG, (BIRD_WIDTH, BIRD_HEIGHT))
+/* ---------- Game State ---------- */
+let state = 'menu';
+let bird = {};
+let pipes = [];
+let spawnTimer = 0;
+let score = 0;
 
-# Sounds
-WING_SOUND = pygame.mixer.Sound("assets/sounds/wing.wav")
-HIT_SOUND = pygame.mixer.Sound("assets/sounds/hit.wav")
-POINT_SOUND = pygame.mixer.Sound("assets/sounds/point.wav")
+function resetBird() {
+  bird.x = Math.floor(canvas.width * 0.2);
+  bird.y = Math.floor(canvas.height / 2 - VIS.birdH/2);
+  bird.w = VIS.birdW;
+  bird.h = VIS.birdH;
+  bird.v = 0;
+}
+function startPlaying() {
+  state = 'playing';
+  pipes = [];
+  spawnTimer = 0;
+  score = 0;
+  resetBird();
+  playBtn.style.display = 'none';
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+function showMenu() {
+  state = 'menu';
+  playBtn.style.display = 'block';
+  playBtn.innerText = 'PLAY';
+}
+function gameOver() {
+  state = 'gameover';
+  playBtn.innerText = 'RESTART';
+  playBtn.style.display = 'block';
+}
 
-# Classes
-class Bird:
-    def __init__(self):
-        self.x = SCREEN_WIDTH // 5
-        self.y = SCREEN_HEIGHT // 2
-        self.width = BIRD_WIDTH
-        self.height = BIRD_HEIGHT
-        self.velocity = 0
-        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+/* ---------- Game ---------- */
+function spawnPipe() {
+  const topH = Math.floor(Math.random()*(canvas.height - VIS.pipeGap - 100) + 50);
+  pipes.push({ x: canvas.width, w: VIS.pipeW, topH: topH, bottomY: topH+VIS.pipeGap, passed:false });
+}
+function update(dt) {
+  const dtNorm = dt * 60;
+  if (state !== 'playing') return;
+  bird.v += GRAVITY * dtNorm;
+  bird.y += bird.v * dtNorm * 0.0167;
+  spawnTimer += dtNorm;
+  if (spawnTimer > SPAWN_FRAMES) { spawnPipe(); spawnTimer=0; }
+  for (let i=pipes.length-1;i>=0;i--) {
+    const p = pipes[i];
+    p.x -= PIPE_SPEED * dtNorm;
+    const pad=5, bx=bird.x+pad, by=bird.y+pad, bw=bird.w-pad*2, bh=bird.h-pad*2;
+    if (bx < p.x+p.w && bx+bw > p.x) {
+      if (by < p.topH || by+bh > p.bottomY) {
+        if (soundsEnabled) { hitSound.currentTime=0; hitSound.play(); }
+        return gameOver();
+      }
+    }
+    if (!p.passed && bird.x > p.x+p.w) {
+      p.passed=true; score++; if(soundsEnabled){pointSound.currentTime=0;pointSound.play();}
+    }
+    if (p.x+p.w<0) pipes.splice(i,1);
+  }
+  if (bird.y+bird.h>=canvas.height || bird.y<=0) {
+    if (soundsEnabled) { hitSound.currentTime=0; hitSound.play(); }
+    return gameOver();
+  }
+}
+function draw() {
+  if (assets.bg.complete) ctx.drawImage(assets.bg,0,0,canvas.width,canvas.height);
+  else { ctx.fillStyle='#70c5ce'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+  for (let p of pipes) {
+    ctx.save();
+    ctx.translate(p.x+p.w/2,p.topH/2); ctx.scale(1,-1);
+    if (assets.pipe.complete) ctx.drawImage(assets.pipe,-p.w/2,-p.topH/2,p.w,p.topH);
+    ctx.restore();
+    if (assets.pipe.complete) ctx.drawImage(assets.pipe,p.x,p.bottomY,p.w,canvas.height-p.bottomY);
+  }
+  if (assets.bird.complete) ctx.drawImage(assets.bird,bird.x,bird.y,bird.w,bird.h);
 
-    def flap(self):
-        self.velocity = FLAP_STRENGTH
-        WING_SOUND.play()
+  // Score
+  ctx.fillStyle='#fff'; 
+  ctx.font=`${Math.max(20,Math.floor(canvas.width*0.05))}px sans-serif`;
+  ctx.fillText(score,20,Math.floor(canvas.height*0.08));
 
-    def update(self):
-        self.velocity += GRAVITY
-        self.y += self.velocity
-        self.rect.y = int(self.y)
+  // Game Over Text
+  if(state==='gameover') {
+    ctx.fillStyle='red';
+    ctx.font=`${Math.max(40,Math.floor(canvas.width*0.08))}px sans-serif`;
+    ctx.fillText('GAME OVER',canvas.width/2-150,canvas.height/2-20);
+  }
+}
 
-    def draw(self, screen):
-        screen.blit(BIRD_IMG, (self.x, self.y))
+/* ---------- Loop ---------- */
+let lastTime = performance.now();
+function loop(now){
+  const dt = (now-lastTime)/1000; lastTime=now;
+  update(dt); draw();
+  if(state==='playing') requestAnimationFrame(loop);
+}
 
-    def hitbox(self):
-        return pygame.Rect(
-            self.rect.x + COLLISION_PADDING,
-            self.rect.y + COLLISION_PADDING,
-            self.rect.width - 2 * COLLISION_PADDING,
-            self.rect.height - 2 * COLLISION_PADDING
-        )
+/* ---------- Input ---------- */
+function flap() {
+  bird.v = FLAP; if(soundsEnabled){wingSound.currentTime=0;wingSound.play();}
+}
+playBtn.addEventListener('click',()=>{enableSounds(); if(state==='menu')startPlaying(); else if(state==='gameover')startPlaying();});
+window.addEventListener('keydown',(e)=>{ if(e.code==='Space'){enableSounds(); if(state==='menu')startPlaying(); else if(state==='playing')flap();}});
+window.addEventListener('mousedown',()=>{enableSounds(); if(state==='menu')startPlaying(); else if(state==='playing')flap();});
+window.addEventListener('touchstart',(e)=>{ e.preventDefault(); enableSounds(); if(state==='menu')startPlaying(); else if(state==='playing')flap();},{passive:false});
 
-class Pipe:
-    def __init__(self, x):
-        self.x = x
-        self.width = PIPE_WIDTH
-        self.top_height = random.randint(50, SCREEN_HEIGHT - PIPE_GAP - 50)
-        self.bottom_y = self.top_height + PIPE_GAP
-        self.passed = False
-        self.top_rect = pygame.Rect(self.x, 0, self.width, self.top_height)
-        self.bottom_rect = pygame.Rect(self.x, self.bottom_y, self.width, SCREEN_HEIGHT - self.bottom_y)
-
-    def update(self):
-        self.x -= PIPE_SPEED
-        self.top_rect.x = int(self.x)
-        self.bottom_rect.x = int(self.x)
-
-    def draw(self, screen):
-        top_pipe_img = pygame.transform.flip(PIPE_IMG, False, True)
-        top_pipe_scaled = pygame.transform.scale(top_pipe_img, (self.width, self.top_height))
-        screen.blit(top_pipe_scaled, (self.x, 0))
-        bottom_pipe_scaled = pygame.transform.scale(PIPE_IMG, (self.width, SCREEN_HEIGHT - self.bottom_y))
-        screen.blit(bottom_pipe_scaled, (self.x, self.bottom_y))
-
-# Buttons
-def draw_button(screen, x, y, width, height, text):
-    pygame.draw.rect(screen, BUTTON_COLOR, (x, y, width, height), border_radius=10)
-    text_surface = BUTTON_FONT.render(text, True, WHITE)
-    screen.blit(text_surface, (x + width // 2 - text_surface.get_width() // 2,
-                               y + height // 2 - text_surface.get_height() // 2))
-
-# Leaderboard display
-def draw_leaderboard(screen):
-    start_y = SCREEN_HEIGHT//2 + 50
-    top_scores = sorted(leaderboard, key=lambda x: x[1], reverse=True)[:5]
-    for idx, (name, score) in enumerate(top_scores):
-        text = SCORE_FONT.render(f"{idx+1}. {name} - {score}", True, WHITE)
-        screen.blit(text, (SCREEN_WIDTH//2 - text.get_width()//2, start_y + idx*40))
-
-# Input name after Game Over
-def get_player_name():
-    name = ""
-    active = True
-    box_width, box_height = 300, 50
-    input_box = pygame.Rect(SCREEN_WIDTH//2 - box_width//2, SCREEN_HEIGHT//2, box_width, box_height)
-    while active:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN and name.strip():
-                    active = False
-                    return name.strip()
-                elif event.key == pygame.K_BACKSPACE:
-                    name = name[:-1]
-                else:
-                    if len(name) < 12:
-                        name += event.unicode
-
-        SCREEN.fill((0,0,0))
-        SCREEN.blit(pygame.transform.scale(BACKGROUND_IMG, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0,0))
-
-        # Prompt
-        prompt = SCORE_FONT.render("Enter your name:", True, WHITE)
-        SCREEN.blit(prompt, (SCREEN_WIDTH//2 - prompt.get_width()//2, SCREEN_HEIGHT//2 - 60))
-
-        # Input box
-        pygame.draw.rect(SCREEN, WHITE, input_box, 2, border_radius=8)
-
-        # Text inside box
-        text_surface = SCORE_FONT.render(name, True, WHITE)
-        text_x = input_box.x + (input_box.width - text_surface.get_width()) // 2
-        text_y = input_box.y + (input_box.height - text_surface.get_height()) // 2
-        SCREEN.blit(text_surface, (text_x, text_y))
-
-        pygame.display.update()
-        clock.tick(FPS)
-
-# Main game
-def main():
-    run = True
-    game_state = "menu"
-    bird = Bird()
-    pipes = []
-    spawn_timer = 0
-    score = 0
-
-    while run:
-        SCREEN.fill((0,0,0))
-        SCREEN.blit(pygame.transform.scale(BACKGROUND_IMG, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                if game_state == "menu":
-                    game_state = "playing"
-                    bird = Bird()
-                    pipes = []
-                    spawn_timer = 0
-                    score = 0
-                elif game_state == "playing":
-                    bird.flap()
-
-        if game_state == "menu":
-            title_text = TITLE_FONT.render("Flappy Bird", True, WHITE)
-            SCREEN.blit(title_text, (SCREEN_WIDTH//2 - title_text.get_width()//2, SCREEN_HEIGHT//4))
-            draw_button(SCREEN, SCREEN_WIDTH//2 - 75, SCREEN_HEIGHT//2, 150, 60, "PLAY")
-            draw_leaderboard(SCREEN)
-
-        elif game_state == "playing":
-            bird.update()
-            bird.draw(SCREEN)
-
-            spawn_timer += 1
-            if spawn_timer > 90:
-                pipes.append(Pipe(SCREEN_WIDTH))
-                spawn_timer = 0
-
-            for pipe in pipes:
-                pipe.update()
-                pipe.draw(SCREEN)
-
-                if bird.hitbox().colliderect(pipe.top_rect) or bird.hitbox().colliderect(pipe.bottom_rect):
-                    HIT_SOUND.play()
-                    game_state = "gameover"
-
-                if not pipe.passed and pipe.x + pipe.width < bird.x:
-                    pipe.passed = True
-                    score += 1
-                    POINT_SOUND.play()
-
-            pipes = [pipe for pipe in pipes if pipe.x + pipe.width > 0]
-
-            if bird.y + bird.height >= SCREEN_HEIGHT or bird.y <= 0:
-                HIT_SOUND.play()
-                game_state = "gameover"
-
-            score_text = SCORE_FONT.render(str(score), True, WHITE)
-            SCREEN.blit(score_text, (20, 20))
-
-        elif game_state == "gameover":
-            # Display Game Over and score
-            SCREEN.fill((0,0,0))
-            SCREEN.blit(pygame.transform.scale(BACKGROUND_IMG, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0,0))
-            gameover_text = TITLE_FONT.render("GAME OVER", True, WHITE)
-            SCREEN.blit(gameover_text, (SCREEN_WIDTH//2 - gameover_text.get_width()//2, SCREEN_HEIGHT//4))
-            score_text = SCORE_FONT.render(f"Score: {score}", True, WHITE)
-            SCREEN.blit(score_text, (SCREEN_WIDTH//2 - score_text.get_width()//2, SCREEN_HEIGHT//2))
-            pygame.display.update()
-
-            # Automatically prompt for name
-            player_name = get_player_name()
-            leaderboard.append((player_name, score))
-
-            # Reset game to menu
-            game_state = "menu"
-            bird = Bird()
-            pipes = []
-            spawn_timer = 0
-            score = 0
-
-        pygame.display.update()
-        clock.tick(FPS)
-
-if __name__ == "__main__":
-    main()
+/* ---------- Init ---------- */
+resize(); showMenu();
+</script>
+</body>
+</html>

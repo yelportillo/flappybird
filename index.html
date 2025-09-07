@@ -34,16 +34,16 @@ const GRAVITY = 0.5;
 const FLAP_STRENGTH = -10;
 const PIPE_SPEED = 3;
 let PIPE_WIDTH = Math.floor(SCREEN_WIDTH * 0.08);
-let PIPE_GAP = Math.floor(SCREEN_HEIGHT * 0.28);
+let PIPE_GAP = Math.floor(SCREEN_HEIGHT * 0.28 + SCREEN_WIDTH * 0.05);
 let COLLISION_PADDING = 5;
-let spawnInterval = Math.floor(SCREEN_WIDTH * 0.6);
+let spawnInterval = Math.max(Math.floor(SCREEN_WIDTH * 0.8), 300);
 
 class Bird {
     constructor() {
         this.x = SCREEN_WIDTH / 5;
         this.y = SCREEN_HEIGHT / 2;
-        this.width = Math.floor(SCREEN_HEIGHT * 0.05 * (birdImg.width / birdImg.height));
         this.height = Math.floor(SCREEN_HEIGHT * 0.05);
+        this.width = Math.floor(this.height * (birdImg.width / birdImg.height));
         this.velocity = 0;
     }
 
@@ -117,7 +117,7 @@ function rectsCollide(r1, r2) {
            r1.y + r1.height > r2.y;
 }
 
-// Update all proportions dynamically
+// Update proportions dynamically for full responsiveness
 function updateProportions() {
     SCREEN_WIDTH = window.innerWidth;
     SCREEN_HEIGHT = window.innerHeight;
@@ -130,9 +130,11 @@ function updateProportions() {
     if (bird.y + bird.height > SCREEN_HEIGHT) bird.y = SCREEN_HEIGHT - bird.height;
 
     // Pipe scaling
-    PIPE_GAP = Math.floor(SCREEN_HEIGHT * 0.28);
-    spawnInterval = Math.floor(SCREEN_WIDTH * 0.6);
     PIPE_WIDTH = Math.floor(SCREEN_WIDTH * 0.08);
+    PIPE_GAP = Math.floor(SCREEN_HEIGHT * 0.28 + SCREEN_WIDTH * 0.05);
+    spawnInterval = Math.max(Math.floor(SCREEN_WIDTH * 0.8), 300);
+
+    // Update existing pipes
     pipes.forEach(pipe => pipe.width = PIPE_WIDTH);
 }
 

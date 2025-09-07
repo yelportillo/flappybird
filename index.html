@@ -52,9 +52,11 @@ function updateProportions() {
     // Pipes
     PIPE_WIDTH = Math.floor(SCREEN_HEIGHT * 0.08); // 8% of screen height
     PIPE_GAP = Math.floor(SCREEN_HEIGHT * 0.25);   // vertical gap proportional
-    spawnInterval = Math.floor(SCREEN_WIDTH * 0.4); // horizontal spacing proportional
 
-    // Reset pipe widths for existing pipes
+    // Horizontal spacing: proportional but capped at 300px
+    spawnInterval = Math.min(Math.floor(SCREEN_WIDTH * 0.35), 300);
+
+    // Update existing pipes
     pipes.forEach(pipe => pipe.width = PIPE_WIDTH);
 }
 

@@ -22,12 +22,12 @@
 <button id="playBtn">PLAY</button>
 
 <script>
-/* ---------- Config (Normal Difficulty) ---------- */
-const GRAVITY = 0.35;      // lighter gravity
-const FLAP = -8;           // normal flap
-const PIPE_SPEED = 2.5;    // normal pipe speed
-const SPAWN_FRAMES = 150;  // more space between pipes
-const PIPE_GAP = 180;      // gap between top and bottom pipes
+/* ---------- Config (Normal Difficulty + Bigger Pipes) ---------- */
+const GRAVITY = 0.35;
+const FLAP = -8;
+const PIPE_SPEED = 2.5;
+const SPAWN_FRAMES = 150;
+const PIPE_GAP = 180;
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -43,7 +43,6 @@ let wingSound = new Audio('assets/sounds/wing.wav');
 let hitSound  = new Audio('assets/sounds/hit.wav');
 let pointSound = new Audio('assets/sounds/point.wav');
 let soundsEnabled = false;
-
 function enableSounds() {
   if (!soundsEnabled) {
     wingSound.play().catch(()=>{});
@@ -53,12 +52,12 @@ function enableSounds() {
 }
 
 /* ---------- Responsive Sizes ---------- */
-let VIS = { birdW:40, birdH:30, pipeW:80, pipeGap:PIPE_GAP };
+let VIS = { birdW:40, birdH:30, pipeW:120, pipeGap:PIPE_GAP }; // thicker pipes
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  VIS.pipeW = Math.floor(canvas.width / 6);
-  VIS.pipeGap = Math.floor(canvas.height / 4); // normal gap
+  VIS.pipeW = Math.floor(canvas.width / 4.5); // bigger pipes
+  VIS.pipeGap = Math.floor(canvas.height / 4);
   VIS.birdW = Math.floor(canvas.width / 12);
   VIS.birdH = VIS.birdW * 0.75;
 }
@@ -143,10 +142,10 @@ function draw() {
   }
   if (assets.bird.complete) ctx.drawImage(assets.bird,bird.x,bird.y,bird.w,bird.h);
 
-  // Score
+  // Score inside screen
   ctx.fillStyle='#fff'; 
   ctx.font=`${Math.max(20,Math.floor(canvas.width*0.05))}px sans-serif`;
-  ctx.fillText(score,20,Math.floor(canvas.height*0.08));
+  ctx.fillText(score, Math.min(20, canvas.width-50), Math.floor(canvas.height*0.08));
 
   // Game Over Text
   if(state==='gameover') {

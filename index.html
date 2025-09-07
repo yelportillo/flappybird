@@ -36,7 +36,7 @@ const PIPE_SPEED = 3;
 let PIPE_WIDTH = Math.floor(SCREEN_WIDTH * 0.08);
 let PIPE_GAP = Math.floor(SCREEN_HEIGHT * 0.28 + SCREEN_WIDTH * 0.05);
 let COLLISION_PADDING = 5;
-let spawnInterval = Math.max(Math.floor(SCREEN_WIDTH * 0.8), 300);
+let spawnInterval = Math.max(Math.floor(SCREEN_WIDTH * 0.9), 400); // wider spacing
 
 class Bird {
     constructor() {
@@ -75,7 +75,12 @@ class Pipe {
     constructor(x) {
         this.x = x;
         this.width = PIPE_WIDTH;
-        this.topHeight = Math.floor(Math.random() * (SCREEN_HEIGHT - PIPE_GAP - 50) + 50);
+
+        // Ensure top pipe is not too short or too tall
+        const minTop = 50;
+        const maxTop = SCREEN_HEIGHT - PIPE_GAP - 50;
+        this.topHeight = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop;
+
         this.bottomY = this.topHeight + PIPE_GAP;
         this.passed = false;
     }
@@ -85,11 +90,14 @@ class Pipe {
     }
 
     draw() {
+        // Top pipe
         ctx.save();
         ctx.translate(this.x + this.width/2, this.topHeight/2);
         ctx.scale(1, -1);
         ctx.drawImage(pipeImg, -this.width/2, -this.topHeight/2, this.width, this.topHeight);
         ctx.restore();
+
+        // Bottom pipe
         ctx.drawImage(pipeImg, this.x, this.bottomY, this.width, SCREEN_HEIGHT - this.bottomY);
     }
 
@@ -117,24 +125,20 @@ function rectsCollide(r1, r2) {
            r1.y + r1.height > r2.y;
 }
 
-// Update proportions dynamically for full responsiveness
 function updateProportions() {
     SCREEN_WIDTH = window.innerWidth;
     SCREEN_HEIGHT = window.innerHeight;
     canvas.width = SCREEN_WIDTH;
     canvas.height = SCREEN_HEIGHT;
 
-    // Bird scaling
     bird.height = Math.floor(SCREEN_HEIGHT * 0.05);
     bird.width = Math.floor(bird.height * (birdImg.width / birdImg.height));
     if (bird.y + bird.height > SCREEN_HEIGHT) bird.y = SCREEN_HEIGHT - bird.height;
 
-    // Pipe scaling
     PIPE_WIDTH = Math.floor(SCREEN_WIDTH * 0.08);
     PIPE_GAP = Math.floor(SCREEN_HEIGHT * 0.28 + SCREEN_WIDTH * 0.05);
-    spawnInterval = Math.max(Math.floor(SCREEN_WIDTH * 0.8), 300);
+    spawnInterval = Math.max(Math.floor(SCREEN_WIDTH * 0.9), 400);
 
-    // Update existing pipes
     pipes.forEach(pipe => pipe.width = PIPE_WIDTH);
 }
 

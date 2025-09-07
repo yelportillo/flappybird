@@ -46,12 +46,15 @@ let pipes = [];
 let score = 0;
 let spawnTimer = 0;
 
-// ✅ Balanced physics (slower & playable)
-const GRAVITY = 600;       // px/s²
-const FLAP = -250;         // px/s
-const PIPE_SPEED = 120;    // px/s
-const PIPE_WIDTH = 100;    // px
-const PIPE_GAP = 260;      // px
+// ✅ Physics constants (fixed px/s)
+const GRAVITY = 600;
+const FLAP = -250;
+const PIPE_SPEED = 120;
+
+// Scaled values (updated on resize)
+let PIPE_WIDTH = 80;
+let PIPE_GAP = 240;
+let BIRD_SIZE = 50;
 
 // Load images
 const birdImg = new Image();
@@ -59,12 +62,26 @@ birdImg.src = 'assets/bird.png';
 const pipeImg = new Image();
 pipeImg.src = 'assets/pipe.png';
 
-// Responsive canvas
+// Responsive scaling
+function getScaledValues() {
+    const scale = canvas.height;
+    return {
+        PIPE_WIDTH: scale * 0.08,   // 8% of screen height
+        PIPE_GAP: scale * 0.35,     // 35% of screen height
+        BIRD_SIZE: scale * 0.06     // 6% of screen height
+    };
+}
+
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    bird.width = canvas.width * 0.08;
+    const scaled = getScaledValues();
+    PIPE_WIDTH = scaled.PIPE_WIDTH;
+    PIPE_GAP = scaled.PIPE_GAP;
+    BIRD_SIZE = scaled.BIRD_SIZE;
+
+    bird.width = BIRD_SIZE;
     bird.height = bird.width * (birdImg.height / birdImg.width);
     bird.x = canvas.width * 0.2;
     bird.y = canvas.height / 2 - bird.height / 2;
@@ -140,7 +157,7 @@ function updateBird(dt) {
 
 function updatePipes(dt) {
     spawnTimer += dt * 60;
-    if(spawnTimer > 120) { // ✅ spawn every ~2 seconds
+    if(spawnTimer > 120) { // spawn every ~2 sec
         spawnPipe();
         spawnTimer = 0;
     }

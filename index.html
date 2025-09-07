@@ -46,11 +46,12 @@ let pipes = [];
 let score = 0;
 let spawnTimer = 0;
 
-const GRAVITY = 800; // pixels per second squared
-const FLAP = -300;   // pixels per second
-const PIPE_WIDTH_RATIO = 0.17; // relative to canvas width
-const PIPE_GAP_RATIO = 0.32;   // relative to canvas height
-const PIPE_SPEED_RATIO = 0.3;  // % of canvas width per second
+// Physics constants (fixed pixels per second)
+const GRAVITY = 800;       // px/s²
+const FLAP = -300;         // px/s
+const PIPE_SPEED = 200;    // px/s
+const PIPE_WIDTH = 120;    // px
+const PIPE_GAP = 220;      // px
 
 // Load images
 const birdImg = new Image();
@@ -58,7 +59,7 @@ birdImg.src = 'assets/bird.png';
 const pipeImg = new Image();
 pipeImg.src = 'assets/pipe.png';
 
-// Resize canvas and bird proportionally
+// Responsive canvas
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -72,8 +73,8 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 // Event listeners
-playButton.addEventListener('click', () => startGame());
-document.addEventListener('keydown', (e) => {
+playButton.addEventListener('click', startGame);
+document.addEventListener('keydown', e => {
     if(gameState === "playing" && e.code === "Space") bird.velocity = FLAP;
 });
 document.addEventListener('mousedown', () => {
@@ -120,13 +121,12 @@ function drawScore() {
 }
 
 function spawnPipe() {
-    const gap = canvas.height * PIPE_GAP_RATIO;
-    const topHeight = Math.random() * (canvas.height - gap - 100) + 50;
+    const topHeight = Math.random() * (canvas.height - PIPE_GAP - 100) + 50;
     const pipe = {
         x: canvas.width,
-        width: canvas.width * PIPE_WIDTH_RATIO,
+        width: PIPE_WIDTH,
         topHeight: topHeight,
-        bottomY: topHeight + gap,
+        bottomY: topHeight + PIPE_GAP,
         passed: false
     };
     pipes.push(pipe);
@@ -140,14 +140,13 @@ function updateBird(dt) {
 
 function updatePipes(dt) {
     spawnTimer += dt * 60;
-    if(spawnTimer > 180) {
+    if(spawnTimer > 90) { // spawn roughly every 1.5 sec
         spawnPipe();
         spawnTimer = 0;
     }
 
-    const pipeSpeed = PIPE_SPEED_RATIO * canvas.width; // pixels per second
     pipes.forEach(pipe => {
-        pipe.x -= pipeSpeed * dt;
+        pipe.x -= PIPE_SPEED * dt;
 
         // collision
         if(bird.x < pipe.x + pipe.width && bird.x + bird.width > pipe.x) {
@@ -167,7 +166,7 @@ function drawPipes() {
     pipes.forEach(drawPipe);
 }
 
-// Game loop with deltaTime in seconds
+// Game loop
 let lastTime = performance.now();
 function gameLoop(timestamp) {
     const dt = (timestamp - lastTime) / 1000; // dt in seconds

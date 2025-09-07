@@ -20,13 +20,6 @@ let SCREEN_HEIGHT = window.innerHeight;
 canvas.width = SCREEN_WIDTH;
 canvas.height = SCREEN_HEIGHT;
 
-const GRAVITY = 0.5;
-const FLAP_STRENGTH = -10;
-const PIPE_SPEED = 3;
-const PIPE_WIDTH = 120;
-const PIPE_GAP = 200;
-const COLLISION_PADDING = 5;
-
 let birdImg = new Image();
 birdImg.src = 'assets/bird.png';
 
@@ -37,12 +30,20 @@ let wingSound = new Audio('assets/sounds/wing.wav');
 let hitSound = new Audio('assets/sounds/hit.wav');
 let pointSound = new Audio('assets/sounds/point.wav');
 
+const GRAVITY = 0.5;
+const FLAP_STRENGTH = -10;
+const PIPE_SPEED = 3;
+let PIPE_WIDTH = Math.floor(SCREEN_WIDTH * 0.08);
+let PIPE_GAP = Math.floor(SCREEN_HEIGHT * 0.28);
+let COLLISION_PADDING = 5;
+let spawnInterval = Math.floor(SCREEN_WIDTH * 0.6);
+
 class Bird {
     constructor() {
         this.x = SCREEN_WIDTH / 5;
         this.y = SCREEN_HEIGHT / 2;
-        this.width = 40;
-        this.height = 30;
+        this.width = Math.floor(SCREEN_HEIGHT * 0.05 * (birdImg.width / birdImg.height));
+        this.height = Math.floor(SCREEN_HEIGHT * 0.05);
         this.velocity = 0;
     }
 
@@ -61,7 +62,12 @@ class Bird {
     }
 
     hitbox() {
-        return { x: this.x + COLLISION_PADDING, y: this.y + COLLISION_PADDING, width: this.width - 2*COLLISION_PADDING, height: this.height - 2*COLLISION_PADDING };
+        return {
+            x: this.x + COLLISION_PADDING,
+            y: this.y + COLLISION_PADDING,
+            width: this.width - 2 * COLLISION_PADDING,
+            height: this.height - 2 * COLLISION_PADDING
+        };
     }
 }
 
@@ -79,13 +85,11 @@ class Pipe {
     }
 
     draw() {
-        // Top pipe
         ctx.save();
         ctx.translate(this.x + this.width/2, this.topHeight/2);
         ctx.scale(1, -1);
         ctx.drawImage(pipeImg, -this.width/2, -this.topHeight/2, this.width, this.topHeight);
         ctx.restore();
-        // Bottom pipe
         ctx.drawImage(pipeImg, this.x, this.bottomY, this.width, SCREEN_HEIGHT - this.bottomY);
     }
 
@@ -99,7 +103,7 @@ let spawnTimer = 0;
 let score = 0;
 let gameState = "menu";
 
-function drawText(text, x, y, size = 40) {
+function drawText(text, x, y, size) {
     ctx.fillStyle = "white";
     ctx.font = `${size}px Comic Sans MS`;
     ctx.textAlign = "center";
@@ -113,19 +117,39 @@ function rectsCollide(r1, r2) {
            r1.y + r1.height > r2.y;
 }
 
-function gameLoop() {
-    ctx.clearRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
+// Update all proportions dynamically
+function updateProportions() {
+    SCREEN_WIDTH = window.innerWidth;
+    SCREEN_HEIGHT = window.innerHeight;
+    canvas.width = SCREEN_WIDTH;
+    canvas.height = SCREEN_HEIGHT;
 
-    if(gameState === "menu") {
-        drawText("Flappy Bird", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, 60);
-        drawText("Press SPACE or CLICK to play", SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 30);
-    } 
-    else if(gameState === "playing") {
+    // Bird scaling
+    bird.height = Math.floor(SCREEN_HEIGHT * 0.05);
+    bird.width = Math.floor(bird.height * (birdImg.width / birdImg.height));
+    if (bird.y + bird.height > SCREEN_HEIGHT) bird.y = SCREEN_HEIGHT - bird.height;
+
+    // Pipe scaling
+    PIPE_GAP = Math.floor(SCREEN_HEIGHT * 0.28);
+    spawnInterval = Math.floor(SCREEN_WIDTH * 0.6);
+    PIPE_WIDTH = Math.floor(SCREEN_WIDTH * 0.08);
+    pipes.forEach(pipe => pipe.width = PIPE_WIDTH);
+}
+
+function gameLoop() {
+    updateProportions();
+    ctx.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    if (gameState === "menu") {
+        drawText("Flappy Bird", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, Math.floor(SCREEN_HEIGHT*0.08));
+        drawText("Press SPACE or CLICK to play", SCREEN_WIDTH/2, SCREEN_HEIGHT/2, Math.floor(SCREEN_HEIGHT*0.04));
+    }
+    else if (gameState === "playing") {
         bird.update();
         bird.draw();
 
-        spawnTimer++;
-        if(spawnTimer > 90) {
+        spawnTimer += PIPE_SPEED;
+        if (spawnTimer >= spawnInterval) {
             pipes.push(new Pipe(SCREEN_WIDTH));
             spawnTimer = 0;
         }
@@ -134,12 +158,12 @@ function gameLoop() {
             pipe.update();
             pipe.draw();
 
-            if(rectsCollide(bird.hitbox(), pipe.topRect()) || rectsCollide(bird.hitbox(), pipe.bottomRect())) {
+            if (rectsCollide(bird.hitbox(), pipe.topRect()) || rectsCollide(bird.hitbox(), pipe.bottomRect())) {
                 hitSound.play();
                 gameState = "gameover";
             }
 
-            if(!pipe.passed && pipe.x + pipe.width < bird.x) {
+            if (!pipe.passed && pipe.x + pipe.width < bird.x) {
                 pipe.passed = true;
                 score++;
                 pointSound.play();
@@ -148,16 +172,16 @@ function gameLoop() {
 
         pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
 
-        if(bird.y + bird.height >= SCREEN_HEIGHT || bird.y <= 0) {
+        if (bird.y + bird.height >= SCREEN_HEIGHT || bird.y <= 0) {
             hitSound.play();
             gameState = "gameover";
         }
 
-        drawText(score, 50, 50);
+        drawText(score, 50, 50, Math.floor(SCREEN_HEIGHT*0.05));
     }
-    else if(gameState === "gameover") {
-        drawText("GAME OVER", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, 60);
-        drawText(`Score: ${score}`, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 40);
+    else if (gameState === "gameover") {
+        drawText("GAME OVER", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, Math.floor(SCREEN_HEIGHT*0.08));
+        drawText(`Score: ${score}`, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, Math.floor(SCREEN_HEIGHT*0.06));
 
         gameState = "menu";
         bird = new Bird();
@@ -170,23 +194,17 @@ function gameLoop() {
 }
 
 document.addEventListener('keydown', e => {
-    if(e.code === "Space") {
-        if(gameState === "menu") gameState = "playing";
-        else if(gameState === "playing") bird.flap();
+    if (e.code === "Space") {
+        if (gameState === "menu") gameState = "playing";
+        else if (gameState === "playing") bird.flap();
     }
 });
 canvas.addEventListener('mousedown', () => {
-    if(gameState === "menu") gameState = "playing";
-    else if(gameState === "playing") bird.flap();
+    if (gameState === "menu") gameState = "playing";
+    else if (gameState === "playing") bird.flap();
 });
 
-// Resize canvas when window size changes
-window.addEventListener('resize', () => {
-    SCREEN_WIDTH = window.innerWidth;
-    SCREEN_HEIGHT = window.innerHeight;
-    canvas.width = SCREEN_WIDTH;
-    canvas.height = SCREEN_HEIGHT;
-});
+window.addEventListener('resize', () => updateProportions());
 
 gameLoop();
 </script>

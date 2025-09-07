@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flappy Bird - All Devices</title>
+<title>Flappy Bird - iOS Friendly</title>
 <style>
   body { margin:0; overflow:hidden; background:#000; }
   canvas { display:block; background:url('assets/background.png') no-repeat center/cover; }
@@ -21,7 +21,7 @@ let SCREEN_HEIGHT = window.innerHeight;
 canvas.width = SCREEN_WIDTH;
 canvas.height = SCREEN_HEIGHT;
 
-// Images & sounds
+// Assets
 let birdImg = new Image(); birdImg.src='assets/bird.png';
 let pipeImg = new Image(); pipeImg.src='assets/pipe.png';
 let wingSound = new Audio('assets/sounds/wing.wav');
@@ -29,8 +29,8 @@ let hitSound = new Audio('assets/sounds/hit.wav');
 let pointSound = new Audio('assets/sounds/point.wav');
 
 // Physics & collision
-let GRAVITY = 0.4;     
-let FLAP_STRENGTH = -9;
+let GRAVITY = 0.35;     
+let FLAP_STRENGTH = -8;
 const PIPE_SPEED = 3;
 let COLLISION_PADDING = 5;
 
@@ -41,19 +41,25 @@ let gameState = "menu";
 // Pipes & spacing
 let PIPE_WIDTH, PIPE_GAP, spawnInterval;
 
+// Update proportions for device
 function updateProportions() {
     SCREEN_WIDTH = window.innerWidth;
     SCREEN_HEIGHT = window.innerHeight;
     canvas.width = SCREEN_WIDTH;
     canvas.height = SCREEN_HEIGHT;
 
-    // Bird
+    // Bird size proportional
     bird.width = Math.floor(SCREEN_HEIGHT*0.06);
     bird.height = Math.floor(SCREEN_HEIGHT*0.06);
 
-    // Pipes
-    PIPE_WIDTH = Math.floor(SCREEN_WIDTH*0.12);
-    PIPE_GAP = Math.floor(SCREEN_HEIGHT*0.25);
+    // Pipes size
+    if(SCREEN_WIDTH <= 768){ // Mobile devices
+        PIPE_WIDTH = Math.floor(SCREEN_WIDTH*0.18);
+        PIPE_GAP = Math.floor(SCREEN_HEIGHT*0.28);
+    } else { // Desktop/tablet
+        PIPE_WIDTH = Math.floor(SCREEN_WIDTH*0.12);
+        PIPE_GAP = Math.floor(SCREEN_HEIGHT*0.25);
+    }
     spawnInterval = Math.min(Math.floor(SCREEN_WIDTH*0.35), 300);
 
     pipes.forEach(pipe=>pipe.width=PIPE_WIDTH);
@@ -100,7 +106,7 @@ class Pipe {
     bottomRect() { return {x:this.x, y:this.bottomY, width:this.width, height:SCREEN_HEIGHT-this.bottomY}; }
 }
 
-// Reset
+// Reset game
 function resetGame() { bird=new Bird(); pipes=[]; spawnTimer=0; score=0; }
 
 // Draw text
@@ -111,7 +117,8 @@ function rectsCollide(r1,r2){ return r1.x<r2.x+r2.width && r1.x+r1.width>r2.x &&
 let lastTime = 0;
 function gameLoop(timestamp){
     if(!lastTime) lastTime = timestamp;
-    let delta = (timestamp - lastTime)/16.67; 
+    let delta = (timestamp - lastTime)/16.67;
+    if(delta > 2) delta = 2; // cap delta for iOS throttling
     lastTime = timestamp;
 
     updateProportions();
@@ -155,7 +162,10 @@ function gameLoop(timestamp){
 // Input
 document.addEventListener('keydown', e=>{ if(e.code==="Space"){ if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap(); }});
 canvas.addEventListener('mousedown', ()=>{ if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap(); });
-canvas.addEventListener('touchstart', ()=>{ if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap(); });
+canvas.addEventListener('touchstart', e=>{
+    e.preventDefault(); // prevent scrolling on iOS
+    if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap();
+},{passive:false});
 
 // Resize
 window.addEventListener('resize', ()=>updateProportions());

@@ -6,22 +6,19 @@
 <title>Flappy Bird</title>
 <style>
     body { margin: 0; overflow: hidden; background: #000; }
-    canvas { display: block; margin: 0 auto; background: url('assets/background.png') no-repeat center/cover; }
-    #leaderboard {
-        position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-        color: white; font-family: 'Comic Sans MS'; font-size: 20px;
-    }
+    canvas { display: block; background: url('assets/background.png') no-repeat center/cover; }
 </style>
 </head>
 <body>
-<canvas id="gameCanvas" width="500" height="700"></canvas>
-<div id="leaderboard"></div>
+<canvas id="gameCanvas"></canvas>
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const SCREEN_WIDTH = canvas.width;
-const SCREEN_HEIGHT = canvas.height;
+let SCREEN_WIDTH = window.innerWidth;
+let SCREEN_HEIGHT = window.innerHeight;
+canvas.width = SCREEN_WIDTH;
+canvas.height = SCREEN_HEIGHT;
 
 const GRAVITY = 0.5;
 const FLAP_STRENGTH = -10;
@@ -39,8 +36,6 @@ pipeImg.src = 'assets/pipe.png';
 let wingSound = new Audio('assets/sounds/wing.wav');
 let hitSound = new Audio('assets/sounds/hit.wav');
 let pointSound = new Audio('assets/sounds/point.wav');
-
-let leaderboard = [];
 
 class Bird {
     constructor() {
@@ -111,13 +106,6 @@ function drawText(text, x, y, size = 40) {
     ctx.fillText(text, x, y);
 }
 
-function drawLeaderboard() {
-    let sorted = leaderboard.sort((a,b) => b.score - a.score).slice(0,5);
-    let html = "<b>Leaderboard</b><br>";
-    sorted.forEach((entry,i) => html += `${i+1}. ${entry.name} - ${entry.score}<br>`);
-    document.getElementById('leaderboard').innerHTML = html;
-}
-
 function rectsCollide(r1, r2) {
     return r1.x < r2.x + r2.width &&
            r1.x + r1.width > r2.x &&
@@ -131,7 +119,6 @@ function gameLoop() {
     if(gameState === "menu") {
         drawText("Flappy Bird", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, 60);
         drawText("Press SPACE or CLICK to play", SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 30);
-        drawLeaderboard();
     } 
     else if(gameState === "playing") {
         bird.update();
@@ -172,8 +159,6 @@ function gameLoop() {
         drawText("GAME OVER", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, 60);
         drawText(`Score: ${score}`, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 40);
 
-        let playerName = prompt("Enter your name:");
-        if(playerName) leaderboard.push({name: playerName, score: score});
         gameState = "menu";
         bird = new Bird();
         pipes = [];
@@ -193,6 +178,14 @@ document.addEventListener('keydown', e => {
 canvas.addEventListener('mousedown', () => {
     if(gameState === "menu") gameState = "playing";
     else if(gameState === "playing") bird.flap();
+});
+
+// Resize canvas when window size changes
+window.addEventListener('resize', () => {
+    SCREEN_WIDTH = window.innerWidth;
+    SCREEN_HEIGHT = window.innerHeight;
+    canvas.width = SCREEN_WIDTH;
+    canvas.height = SCREEN_HEIGHT;
 });
 
 gameLoop();

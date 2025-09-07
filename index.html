@@ -49,13 +49,12 @@ let spawnTimer = 0;
 const GRAVITY = 0.5;
 const FLAP = -10;
 const PIPE_WIDTH = 120;
-const PIPE_GAP = 220; // increased vertical gap
+const PIPE_GAP = 220; // vertical gap
 const PIPE_SPEED = 3;
 
 // Load images
 const birdImg = new Image();
 birdImg.src = 'assets/bird.png';
-
 const pipeImg = new Image();
 pipeImg.src = 'assets/pipe.png';
 
@@ -63,13 +62,11 @@ pipeImg.src = 'assets/pipe.png';
 playButton.addEventListener('click', () => {
     startGame();
 });
-
 document.addEventListener('keydown', (e) => {
     if(gameState === "playing" && e.code === "Space") {
         bird.velocity = FLAP;
     }
 });
-
 document.addEventListener('mousedown', (e) => {
     if(gameState === "playing") {
         bird.velocity = FLAP;
@@ -84,6 +81,7 @@ function startGame() {
     score = 0;
     spawnTimer = 0;
     playButton.style.display = "none";
+    lastTime = performance.now();
     requestAnimationFrame(gameLoop);
 }
 
@@ -108,12 +106,10 @@ function drawPipe(pipe) {
     ctx.drawImage(pipeImg, pipe.x, pipe.bottomY, pipe.width, canvas.height - pipe.bottomY);
 }
 
-function updateBird() {
-    bird.velocity += GRAVITY;
-    bird.y += bird.velocity;
-    if(bird.y + bird.height >= canvas.height || bird.y <= 0) {
-        gameOver();
-    }
+function drawScore() {
+    ctx.fillStyle = "white";
+    ctx.font = "40px sans-serif";
+    ctx.fillText(score, 20, 50);
 }
 
 function spawnPipe() {
@@ -128,15 +124,23 @@ function spawnPipe() {
     pipes.push(pipe);
 }
 
-function updatePipes() {
-    spawnTimer++;
-    if(spawnTimer > 180) { // increased horizontal spacing
+function updateBird(dt) {
+    bird.velocity += GRAVITY * dt;
+    bird.y += bird.velocity * dt;
+    if(bird.y + bird.height >= canvas.height || bird.y <= 0) {
+        gameOver();
+    }
+}
+
+function updatePipes(dt) {
+    spawnTimer += dt * 60; // normalize timer to 60fps
+    if(spawnTimer > 180) { // horizontal spacing
         spawnPipe();
         spawnTimer = 0;
     }
 
     pipes.forEach(pipe => {
-        pipe.x -= PIPE_SPEED;
+        pipe.x -= PIPE_SPEED * dt * 60;
 
         // Collision
         if(bird.x < pipe.x + pipe.width && bird.x + bird.width > pipe.x) {
@@ -158,18 +162,17 @@ function drawPipes() {
     pipes.forEach(drawPipe);
 }
 
-function drawScore() {
-    ctx.fillStyle = "white";
-    ctx.font = "40px sans-serif";
-    ctx.fillText(score, 20, 50);
-}
+// Game loop with deltaTime
+let lastTime = performance.now();
+function gameLoop(timestamp) {
+    const dt = (timestamp - lastTime) / 16.666; // ~60fps normalization
+    lastTime = timestamp;
 
-function gameLoop() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     if(gameState === "playing") {
-        updateBird();
-        updatePipes();
+        updateBird(dt);
+        updatePipes(dt);
         drawBird();
         drawPipes();
         drawScore();

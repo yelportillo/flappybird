@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flappy Bird - Mobile Friendly</title>
+<title>Flappy Bird - Scaled for All Devices</title>
 <style>
   body { margin:0; overflow:hidden; background:#000; }
   canvas { display:block; background:url('assets/background.png') no-repeat center/cover; }
@@ -14,6 +14,10 @@
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+// Reference resolution
+const BASE_WIDTH = 500;
+const BASE_HEIGHT = 700;
 
 let SCREEN_WIDTH = window.innerWidth;
 let SCREEN_HEIGHT = window.innerHeight;
@@ -31,38 +35,38 @@ let pointSound = new Audio('assets/sounds/point.wav');
 let bird, pipes, spawnTimer, score;
 let gameState = "menu";
 
-// Base physics
+// Physics
 let GRAVITY = 0.4;
 let FLAP_STRENGTH = -8;
 const PIPE_SPEED = 3;
 let COLLISION_PADDING = 5;
 
-// Pipe sizes & spacing
+// Pipes
 let PIPE_WIDTH, PIPE_GAP, spawnInterval;
 
-// Update proportions based on screen
+// Calculate scaling factor
 function updateProportions() {
     SCREEN_WIDTH = window.innerWidth;
     SCREEN_HEIGHT = window.innerHeight;
     canvas.width = SCREEN_WIDTH;
     canvas.height = SCREEN_HEIGHT;
 
-    let baseScale = Math.min(SCREEN_WIDTH, SCREEN_HEIGHT) / 600;
+    let scale = Math.min(SCREEN_WIDTH/BASE_WIDTH, SCREEN_HEIGHT/BASE_HEIGHT);
 
-    bird.width = 40 * baseScale;
-    bird.height = 40 * baseScale;
+    // Bird size
+    bird.width = Math.max(40*scale, 30);
+    bird.height = Math.max(40*scale, 30);
 
-    if(SCREEN_WIDTH <= 768){ // mobile
-        PIPE_WIDTH = 60 * baseScale;
-        PIPE_GAP = 220 * baseScale;
-        spawnInterval = 250 * baseScale;
-    } else { // desktop
-        PIPE_WIDTH = 80 * baseScale;
-        PIPE_GAP = 200 * baseScale;
-        spawnInterval = 300 * baseScale;
-    }
+    // Pipes
+    PIPE_WIDTH = Math.max(80*scale, 50);
+    PIPE_GAP = Math.max(200*scale, 150);
+    spawnInterval = Math.max(300*scale, 150);
 
-    pipes.forEach(pipe=>pipe.width=PIPE_WIDTH);
+    // Physics
+    GRAVITY = 0.35 * (SCREEN_HEIGHT / BASE_HEIGHT);
+    FLAP_STRENGTH = -8 * (SCREEN_HEIGHT / BASE_HEIGHT);
+
+    pipes.forEach(pipe => pipe.width = PIPE_WIDTH);
 }
 
 // Bird class
@@ -75,11 +79,8 @@ class Bird {
         this.velocity = 0;
     }
     flap() { this.velocity = FLAP_STRENGTH; wingSound.play(); }
-    update() {
-        this.velocity += GRAVITY;
-        this.y += this.velocity;
-    }
-    draw() { ctx.drawImage(birdImg,this.x,this.y,this.width,this.height); }
+    update() { this.velocity += GRAVITY; this.y += this.velocity; }
+    draw() { ctx.drawImage(birdImg, this.x, this.y, this.width, this.height); }
     hitbox() { return {x:this.x+COLLISION_PADDING, y:this.y+COLLISION_PADDING, width:this.width-2*COLLISION_PADDING, height:this.height-2*COLLISION_PADDING}; }
 }
 
@@ -129,7 +130,7 @@ function gameLoop(){
         bird.draw();
 
         spawnTimer += PIPE_SPEED;
-        if(spawnTimer>=spawnInterval){ pipes.push(new Pipe(SCREEN_WIDTH)); spawnTimer=0; }
+        if(spawnTimer >= spawnInterval){ pipes.push(new Pipe(SCREEN_WIDTH)); spawnTimer=0; }
 
         pipes.forEach(pipe=>{
             pipe.update();
@@ -138,14 +139,14 @@ function gameLoop(){
             if(rectsCollide(bird.hitbox(),pipe.topRect()) || rectsCollide(bird.hitbox(),pipe.bottomRect())){
                 hitSound.play(); gameState="gameover";
             }
-            if(!pipe.passed && pipe.x+pipe.width<bird.x){ pipe.passed=true; score++; pointSound.play(); }
+            if(!pipe.passed && pipe.x + pipe.width < bird.x){ pipe.passed=true; score++; pointSound.play(); }
         });
 
-        pipes = pipes.filter(pipe=>pipe.x+pipe.width>0);
+        pipes = pipes.filter(pipe=>pipe.x + pipe.width > 0);
 
-        if(bird.y+bird.height>=SCREEN_HEIGHT || bird.y<=0){ hitSound.play(); gameState="gameover"; }
+        if(bird.y + bird.height >= SCREEN_HEIGHT || bird.y <= 0){ hitSound.play(); gameState="gameover"; }
 
-        drawText(score,50,50,40);
+        drawText(score, 50, 50, 40);
 
     } else if(gameState==="gameover"){
         drawText("GAME OVER", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, 60);
@@ -160,7 +161,7 @@ function gameLoop(){
 document.addEventListener('keydown', e=>{ if(e.code==="Space"){ if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap(); }});
 canvas.addEventListener('mousedown', ()=>{ if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap(); });
 canvas.addEventListener('touchstart', e=>{
-    e.preventDefault(); 
+    e.preventDefault();
     if(gameState==="menu") gameState="playing"; else if(gameState==="playing") bird.flap();
 },{passive:false});
 

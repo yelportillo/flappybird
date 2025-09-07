@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Flappy Bird - Cross-Device with Game Over</title>
+<title>Flappy Bird</title>
 <style>
   body { margin:0; overflow:hidden; background:#000; }
   canvas { display:block; background:url('assets/background.png') no-repeat center/cover; }
@@ -34,7 +34,7 @@ let pointSound = new Audio('assets/sounds/point.wav');
 let bird, pipes, spawnTimer, score;
 let gameState = "menu";
 
-// Physics (fixed values)
+// Physics
 const GRAVITY = 0.35;
 const FLAP_STRENGTH = -8;
 const PIPE_SPEED = 3;
@@ -130,7 +130,7 @@ function drawGameOver(){
 
 let lastTime = performance.now();
 
-// Game loop using deltaTime
+// Game loop
 function gameLoop(currentTime){
     const deltaTime = (currentTime - lastTime)/1000;
     lastTime = currentTime;
@@ -139,7 +139,7 @@ function gameLoop(currentTime){
     ctx.clearRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
 
     if(gameState==="menu"){
-        drawText("Flappy Bird", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, 60);
+        drawText("Flappy Bird", SCREEN_WIDTH/2, SCREEN_HEIGHT/4, 60); // Title stays exactly "Flappy Bird"
         drawText("Tap/Click or SPACE to play", SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 30);
     } else if(gameState==="playing"){
         bird.update(deltaTime);

@@ -46,12 +46,12 @@ let pipes = [];
 let score = 0;
 let spawnTimer = 0;
 
-// Physics constants (fixed pixels per second)
-const GRAVITY = 800;       // px/s²
-const FLAP = -300;         // px/s
-const PIPE_SPEED = 200;    // px/s
-const PIPE_WIDTH = 120;    // px
-const PIPE_GAP = 220;      // px
+// ✅ Balanced physics (slower & playable)
+const GRAVITY = 600;       // px/s²
+const FLAP = -250;         // px/s
+const PIPE_SPEED = 120;    // px/s
+const PIPE_WIDTH = 100;    // px
+const PIPE_GAP = 260;      // px
 
 // Load images
 const birdImg = new Image();
@@ -140,7 +140,7 @@ function updateBird(dt) {
 
 function updatePipes(dt) {
     spawnTimer += dt * 60;
-    if(spawnTimer > 90) { // spawn roughly every 1.5 sec
+    if(spawnTimer > 120) { // ✅ spawn every ~2 seconds
         spawnPipe();
         spawnTimer = 0;
     }

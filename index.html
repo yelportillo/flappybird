@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flappy Bird - Scaled for All Devices</title>
+<title>Flappy Bird - Fixed Desktop Speed</title>
 <style>
   body { margin:0; overflow:hidden; background:#000; }
   canvas { display:block; background:url('assets/background.png') no-repeat center/cover; }
@@ -15,7 +15,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Reference resolution
+// Reference resolution for scaling
 const BASE_WIDTH = 500;
 const BASE_HEIGHT = 700;
 
@@ -35,8 +35,8 @@ let pointSound = new Audio('assets/sounds/point.wav');
 let bird, pipes, spawnTimer, score;
 let gameState = "menu";
 
-// Physics
-let GRAVITY = 0.4;
+// Physics (fixed)
+let GRAVITY = 0.35;
 let FLAP_STRENGTH = -8;
 const PIPE_SPEED = 3;
 let COLLISION_PADDING = 5;
@@ -44,7 +44,7 @@ let COLLISION_PADDING = 5;
 // Pipes
 let PIPE_WIDTH, PIPE_GAP, spawnInterval;
 
-// Calculate scaling factor
+// Update proportions
 function updateProportions() {
     SCREEN_WIDTH = window.innerWidth;
     SCREEN_HEIGHT = window.innerHeight;
@@ -58,13 +58,15 @@ function updateProportions() {
     bird.height = Math.max(40*scale, 30);
 
     // Pipes
-    PIPE_WIDTH = Math.max(80*scale, 50);
-    PIPE_GAP = Math.max(200*scale, 150);
-    spawnInterval = Math.max(300*scale, 150);
-
-    // Physics
-    GRAVITY = 0.35 * (SCREEN_HEIGHT / BASE_HEIGHT);
-    FLAP_STRENGTH = -8 * (SCREEN_HEIGHT / BASE_HEIGHT);
+    if(SCREEN_WIDTH <= 768){ // mobile
+        PIPE_WIDTH = Math.max(60*scale, 50);
+        PIPE_GAP = Math.max(220*scale, 150);
+        spawnInterval = Math.max(250*scale, 150);
+    } else { // desktop
+        PIPE_WIDTH = Math.max(80*scale, 50);
+        PIPE_GAP = Math.max(200*scale, 150);
+        spawnInterval = Math.max(300*scale, 150);
+    }
 
     pipes.forEach(pipe => pipe.width = PIPE_WIDTH);
 }

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Flappy Bird – Normal Collision</title>
+<style>
+  body { margin: 0; overflow: hidden; background: black; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Background image
+const bgImg = new Image();
+bgImg.src = "assets/background.png";
+
+let bgWidth = 500, bgHeight = 700;
+let scale = 1, offsetX = 0, offsetY = 0;
+
+// Game variables
+let bird = {}, pipes = [], spawnTimer = 0, score = 0, gameState = "menu";
+
+// Constants
+let PIPE_WIDTH_RATIO = 0.15; // narrower pipes
+let PIPE_GAP_RATIO = 0.35;   // bigger gaps
+let GRAVITY_RATIO = 0.5 / 700;
+let FLAP_RATIO = -10 / 700;
+let PIPE_SPEED_RATIO = 3 / 700;
+const COLLISION_PADDING = 5; // more forgiving collisions
+
+// Load assets
+const birdImg = new Image();
+birdImg.src = "assets/bird.png";
+const pipeImg = new Image();
+pipeImg.src = "assets/pipe.png";
+
+// Sounds
+const wingSound = new Audio("assets/sounds/wing.wav");
+const hitSound = new Audio("assets/sounds/hit.wav");
+const pointSound = new Audio("assets/sounds/point.wav");
+
+// --- Resize ---
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    scale = Math.min(canvas.width / bgWidth, canvas.height / bgHeight);
+    offsetX = (canvas.width - bgWidth * scale) / 2;
+    offsetY = (canvas.height - bgHeight * scale) / 2;
+}
+
+window.addEventListener('resize', resize);
+
+// --- Start game ---
+function startGame() {
+    gameState = "playing";
+    const birdAspect = birdImg.width / birdImg.height;
+    const birdHeight = bgHeight * 0.06;
+    const birdWidth = birdHeight * birdAspect;
+    bird = { x: bgWidth*0.2, y: bgHeight/2, width: birdWidth, height: birdHeight, velocity: 0 };
+    pipes = [];
+    spawnTimer = 0;
+    score = 0;
+}
+
+// --- Input ---
+function flap() {
+    if (gameState === "playing") {
+        bird.velocity = FLAP_RATIO * bgHeight;
+        wingSound.currentTime = 0; wingSound.play();
+    } else { startGame(); }
+}
+
+document.addEventListener('keydown', flap);
+document.addEventListener('mousedown', flap);
+document.addEventListener('touchstart', (e)=>{ e.preventDefault(); flap(); }, {passive:false});
+
+// --- Create Pipe ---
+function createPipe() {
+    const PIPE_WIDTH = PIPE_WIDTH_RATIO * bgWidth;
+    const PIPE_GAP = PIPE_GAP_RATIO * bgHeight;
+    const minTop = 50;
+    const maxTop = bgHeight - PIPE_GAP - 50;
+    const topHeight = Math.random() * (maxTop - minTop) + minTop;
+    const bottomY = topHeight + PIPE_GAP;
+
+    const topCanvas = document.createElement('canvas');
+    topCanvas.width = PIPE_WIDTH; topCanvas.height = topHeight;
+    const topCtx = topCanvas.getContext('2d');
+    topCtx.translate(0, topHeight); topCtx.scale(1,-1);
+    topCtx.drawImage(pipeImg, 0, 0, PIPE_WIDTH, topHeight);
+
+    const bottomCanvas = document.createElement('canvas');
+    bottomCanvas.width = PIPE_WIDTH; bottomCanvas.height = bgHeight - bottomY;
+    const bottomCtx = bottomCanvas.getContext('2d');
+    bottomCtx.drawImage(pipeImg, 0, 0, PIPE_WIDTH, bottomCanvas.height);
+
+    pipes.push({ x:bgWidth, topHeight, bottomY, passed:false, topCanvas, bottomCanvas });
+}
+
+// --- Update ---
+function update() {
+    if (gameState !== "playing") return;
+
+    const GRAVITY = GRAVITY_RATIO*bgHeight;
+    const PIPE_WIDTH = PIPE_WIDTH_RATIO*bgWidth;
+    const PIPE_SPEED = PIPE_SPEED_RATIO*bgHeight;
+
+    bird.velocity += GRAVITY;
+    bird.y += bird.velocity;
+
+    spawnTimer++;
+    if (spawnTimer > 90) { createPipe(); spawnTimer=0; }
+
+    pipes.forEach(pipe=>{
+        pipe.x -= PIPE_SPEED;
+
+        // Smarter collision
+        const birdRect = {
+            x: bird.x + COLLISION_PADDING,
+            y: bird.y + COLLISION_PADDING,
+            width: bird.width - 2*COLLISION_PADDING,
+            height: bird.height - 2*COLLISION_PADDING
+        };
+
+        if (birdRect.x < pipe.x + PIPE_WIDTH &&
+            birdRect.x + birdRect.width > pipe.x &&
+            (birdRect.y < pipe.topHeight || birdRect.y + birdRect.height > pipe.bottomY)) {
+            hitSound.currentTime=0; hitSound.play(); gameState="gameover";
+        }
+
+        if (!pipe.passed && pipe.x + PIPE_WIDTH < bird.x) {
+            pipe.passed=true; score++; pointSound.currentTime=0; pointSound.play();
+        }
+    });
+
+    pipes = pipes.filter(pipe => pipe.x + PIPE_WIDTH > 0);
+
+    if (bird.y < 0) { bird.y = 0; bird.velocity = 0; }
+    if (bird.y + bird.height > bgHeight) { bird.y = bgHeight - bird.height; bird.velocity=0; gameState="gameover"; }
+}
+
+// --- Draw ---
+function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
+
+    ctx.drawImage(bgImg,0,0,bgWidth,bgHeight);
+
+    const PIPE_WIDTH = PIPE_WIDTH_RATIO*bgWidth;
+    pipes.forEach(pipe=>{
+        ctx.drawImage(pipe.topCanvas, pipe.x, 0, PIPE_WIDTH, pipe.topCanvas.height);
+        ctx.drawImage(pipe.bottomCanvas, pipe.x, pipe.bottomY, PIPE_WIDTH, pipe.bottomCanvas.height);
+    });
+
+    ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+
+    if (gameState === "playing" || gameState === "gameover") {
+        ctx.fillStyle="white";
+        ctx.font=`${bgHeight*0.06}px Arial`;
+        ctx.textAlign="left";
+        ctx.fillText(score, bgWidth*0.02, bgHeight*0.08);
+    }
+
+    if (gameState==="menu"){
+        ctx.fillStyle="white";
+        ctx.font=`${bgHeight*0.08}px Arial`;
+        ctx.textAlign="center";
+        ctx.fillText("FLAPPY BIRD", bgWidth/2, bgHeight/4);
+        ctx.font=`${bgHeight*0.04}px Arial`;
+        ctx.fillText("CLICK OR PRESS ANY KEY TO PLAY", bgWidth/2, bgHeight/2);
+    }
+
+    if (gameState==="gameover"){
+        ctx.fillStyle="red";
+        ctx.font=`${bgHeight*0.1}px Arial`;
+        ctx.textAlign="center";
+        ctx.fillText("GAME OVER", bgWidth/2, bgHeight/2 - bgHeight*0.05);
+        ctx.fillStyle="white";
+        ctx.font=`${bgHeight*0.06}px Arial`;
+        ctx.fillText(`Score: ${score}`, bgWidth/2, bgHeight/2);
+        ctx.font=`${bgHeight*0.04}px Arial`;
+        ctx.fillText("CLICK OR PRESS ANY KEY TO RESTART", bgWidth/2, bgHeight/2 + bgHeight*0.08);
+    }
+
+    ctx.restore();
+}
+
+// --- Main loop ---
+function loop(){ update(); draw(); requestAnimationFrame(loop); }
+
+bgImg.onload = ()=>{
+    bgWidth = bgImg.width; bgHeight = bgImg.height;
+    resize(); loop();
+};
+window.addEventListener('resize', resize);
+</script>
+</body>
+</html>
